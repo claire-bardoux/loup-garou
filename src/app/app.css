@@ -1,0 +1,13 @@
+:root {
+  --primary-bg: #121212;
+  --secondary-bg: #1e1e1e;
+  --text-color: #ffffff;
+  --accent-color: #bb86fc;
+}
+
+:host {
+  background-color: var(--primary-bg);
+  color: var(--text-color);
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+}
