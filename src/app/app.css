@@ -1,13 +1,7 @@
-:root {
-  --primary-bg: #121212;
-  --secondary-bg: #1e1e1e;
-  --text-color: #ffffff;
-  --accent-color: #bb86fc;
-}
-
-:host {
-  background-color: var(--primary-bg);
-  color: var(--text-color);
+body {
+  background-image: url('../assets/images/background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   min-height: 100vh;
-  font-family: Arial, sans-serif;
 }

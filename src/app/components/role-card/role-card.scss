@@ -1,0 +1,65 @@
+.role-card {
+  background: #1b120d;
+  border: 1px solid #c89435;
+  border-radius: 5px;
+
+  padding: 20px 16px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  min-height: 265px;
+}
+
+.role-image-container {
+  height: 140px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.role-image {
+  width: 130px;
+  height: 130px;
+  object-fit: contain;
+}
+
+.role-name {
+  margin: 8px 0 12px;
+
+  color: #dca744;
+
+  font-family: Georgia, serif;
+  font-size: 21px;
+  text-align: center;
+}
+
+.role-team {
+  width: 100%;
+  max-width: 135px;
+
+  padding: 6px 10px;
+
+  border-radius: 4px;
+
+  text-align: center;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+}
+
+.role-team.village {
+  background: #064900;
+  color: #25c94a;
+}
+
+.role-team.loup {
+  background: #650000;
+  color: #ff3030;
+}
+
+.role-team.solitaire {
+  background: #5b3b00;
+  color: #e5a928;
+}
