@@ -3,15 +3,6 @@
 
   padding: 24px;
 
-  background:
-    linear-gradient(
-      rgba(10, 10, 10, 0.82),
-      rgba(10, 10, 10, 0.82)
-    ),
-    url('/assets/images/background.png');
-  background-size: cover;
-  background-position: center;
-
   color: #dca744;
 }
 
@@ -50,6 +41,13 @@
   margin-bottom: 14px;
 
   background: #1b120d;
+}
+
+.search-icon {
+  padding: 14px;
+
+  color: #dca744;
+  font-size: 45px;
 }
 
 .search input {
@@ -108,7 +106,7 @@
 
 @media (min-width: 700px) {
   .roles-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
