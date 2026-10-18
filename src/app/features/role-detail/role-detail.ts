@@ -1,45 +1,50 @@
-import { Component, computed, inject } from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
-import { ROLES } from "../../data/roles";
-import { TeamBadge } from "../../shared/components/team-badge/team-badge";
-import { RoleCard } from "../../shared/components/role-card/role-card";
+import { Component, computed, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 
+import { ROLES } from '../../data/roles';
+import { TeamBadge } from '../../shared/components/team-badge/team-badge';
+import { RoleCard } from '../../shared/components/role-card/role-card';
 
 @Component({
-selector: 'app-role-detail',
-imports: [ TeamBadge, RoleCard ],
-templateUrl: './role-detail.html',
-styleUrl: './role-detail.css',
+  selector: 'app-role-detail',
+  imports: [TeamBadge, RoleCard],
+  templateUrl: './role-detail.html',
+  styleUrl: './role-detail.css',
 })
 export class RoleDetail {
-private route = inject(ActivatedRoute);
+  private route = inject(ActivatedRoute);
 
-private roleId = this.route.snapshot.paramMap.get('id');
+  private roleId = toSignal(
+    this.route.paramMap.pipe(
+      map((params) => params.get('id'))
+    ),
+    { initialValue: this.route.snapshot.paramMap.get('id') }
+  );
 
-role = computed(() => ROLES.find((role) => role.id === this.roleId));
+  role = computed(() =>
+    ROLES.find((role) => role.id === this.roleId())
+  );
 
-otherRoles = computed(() => {
-const availableRoles = ROLES.filter(
-(role) => role.id !== this.roleId
-);
-// Mélange aléatoire avec Fisher-Yates
+  otherRoles = computed(() => {
+    const currentRoleId = this.roleId();
 
-for (let i = availableRoles.length - 1; i > 0; i--) {
+    const availableRoles = ROLES.filter(
+      (role) => role.id !== currentRoleId
+    );
 
-  const j = Math.floor(Math.random() * (i + 1));
+    // Mélange aléatoire avec Fisher-Yates
+    for (let i = availableRoles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
 
-  [availableRoles[i], availableRoles[j]] = [
+      [availableRoles[i], availableRoles[j]] = [
+        availableRoles[j],
+        availableRoles[i],
+      ];
+    }
 
-    availableRoles[j],
-
-    availableRoles[i],
-
-  ];
-
-}
-
-// Retourne au maximum 4 rôles
-
-return availableRoles.slice(0, 4);
-});
+    // Retourne au maximum 4 rôles
+    return availableRoles.slice(0, 4);
+  });
 }
