@@ -13,6 +13,6 @@
     [class.loup]="role().team === 'loup'"
     [class.solitaire]="role().team === 'solitaire'"
   >
-    {{ role().team }}
+    {{ role().team | uppercase }}
   </span>
 </article>
