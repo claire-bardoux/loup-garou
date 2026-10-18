@@ -1,7 +1,6 @@
-import { Component, signal } from '@angular/core';
-import { RoleLibrary } from "./pages/role-library/role-library";
-import { Header } from './components/header/header';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { Component } from '@angular/core';
+import { Header } from './layout/header/header';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',

@@ -1,0 +1,32 @@
+<main class="library">
+
+  <app-search-bar
+     placeholder="Rechercher un rôle"
+    (searchChange)="onSearchChange($event)"
+  />
+
+
+  <app-filter-buttons
+
+    [filters]="filters"
+
+    [selectedFilter]="selectedFilter()"
+
+    (filterChange)="selectFilter($event)"
+
+  />
+
+
+  <section class="roles-grid">
+
+    @for (role of filteredRoles(); track role.id) {
+
+      <app-role-card
+        [role]="role"
+      />
+
+    }
+
+  </section>
+
+</main>

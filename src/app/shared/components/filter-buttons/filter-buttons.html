@@ -1,0 +1,21 @@
+<nav class="filters">
+
+  @for (filter of filters(); track filter.value) {
+
+    <button
+
+      type="button"
+
+      [class.active]="selectedFilter() === filter.value"
+
+      (click)="selectFilter(filter.value)"
+
+    >
+
+      {{ filter.label }}
+
+    </button>
+
+  }
+
+</nav>

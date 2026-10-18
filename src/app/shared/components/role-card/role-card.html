@@ -1,11 +1,6 @@
-<article class="role-card">
-
+<article class="role-card" [routerLink]="['/roles', role().id]" tabindex="0">
   <div class="role-image-container">
-    <img
-      [src]="role().image"
-      [alt]="role().name"
-      class="role-image"
-    />
+    <img [src]="role().image" [alt]="role().name" class="role-image" />
   </div>
 
   <h2 class="role-name">
@@ -18,7 +13,6 @@
     [class.loup]="role().team === 'loup'"
     [class.solitaire]="role().team === 'solitaire'"
   >
-    {{ role().team  }}
+    {{ role().team }}
   </span>
-
 </article>

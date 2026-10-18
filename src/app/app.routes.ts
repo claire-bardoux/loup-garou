@@ -1,26 +1,23 @@
 import { Routes } from '@angular/router';
 
-import { Home } from './pages/home/home';
-import { Training } from './pages/training/training';
-import { Statistics } from './pages/statistics/statistics';
-import { RoleLibrary } from './pages/role-library/role-library';
+import { Home } from './features/home/home';
+import { Training } from './features/training/training';
+import { Statistics } from './features/statistics/statistics';
+import { RoleLibrary } from './features/role-library/role-library';
+import { RoleDetail } from './features/role-detail/role-detail';
 
 export const routes: Routes = [
   {
     path: '',
-    component: Home
-  },
-  {
-    path: 'training',
-    component: Training
-  },
-  {
-    path: 'statistics',
-    component: Statistics
+    component: RoleLibrary
   },
   {
     path: 'role-library',
     component: RoleLibrary
+  },
+  {
+    path: 'roles/:id',
+    component: RoleDetail
   },
   {
     path: '**',

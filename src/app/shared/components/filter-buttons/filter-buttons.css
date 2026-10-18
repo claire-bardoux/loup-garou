@@ -1,0 +1,37 @@
+.filters {
+
+  display: flex;
+
+  gap: 8px;
+
+  margin-bottom: 24px;
+
+  overflow-x: auto;
+
+}
+
+.filters button {
+
+  flex-shrink: 0;
+
+  padding: 9px 16px;
+
+  border: 1px solid #a97825;
+
+  border-radius: 5px;
+
+  background: transparent;
+
+  color: #dca744;
+
+  cursor: pointer;
+
+}
+
+.filters button.active {
+
+  background: #e5aa43;
+
+  color: #1b120d;
+
+}
