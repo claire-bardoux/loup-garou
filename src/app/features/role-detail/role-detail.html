@@ -11,9 +11,7 @@
 
     <!-- Nom et Équipe -->
     <h1>{{ currentRole.name }}</h1>
-    <div class="team-badge" [class.village]="currentRole.team === 'village'">
-      {{ currentRole.team | uppercase }}
-    </div>
+    <app-team-badge [team]="currentRole.team" />
 
     <!-- Informations générales -->
     <section class="role-section">
@@ -46,20 +44,21 @@
       </section>
     }
 
-    <section class="see-also-section">
+    <section class="role-section">
       <h2>Voir aussi</h2>
       <div class="related-roles-grid">
         @for (otherRole of otherRoles(); track otherRole.id) {
           <!-- Si vous avez un composant RoleCard : -->
-          <!-- <app-role-card [role]="otherRole" /> -->
+          <app-role-card [role]="otherRole" />
+          
 
-          <!-- Ou affichage direct en HTML si vous préférez : -->
+          <!-- Ou affichage direct en HTML si vous préférez : 
           <a [routerLink]="['/roles', otherRole.id]" class="related-role-card">
             <div class="related-image-container">
               <img [src]="otherRole.image" [alt]="otherRole.name" />
             </div>
             <span class="related-name">{{ otherRole.name }}</span>
-          </a>
+          </a>-->
         }
       </div>
     </section>

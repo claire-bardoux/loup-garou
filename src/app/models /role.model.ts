@@ -1,4 +1,4 @@
-export type RoleTeam = 'village' | 'loup' | 'solitaire';
+export type RoleTeam = 'village' | 'loup' | 'solitaire' | 'ambigu';
 
 export interface Role {
   id: string;

@@ -7,12 +7,5 @@
     {{ role().name }}
   </h2>
 
-  <span
-    class="role-team"
-    [class.village]="role().team === 'village'"
-    [class.loup]="role().team === 'loup'"
-    [class.solitaire]="role().team === 'solitaire'"
-  >
-    {{ role().team | uppercase }}
-  </span>
+  <app-team-badge [team]="role().team" />
 </article>

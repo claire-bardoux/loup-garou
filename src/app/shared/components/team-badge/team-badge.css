@@ -1,0 +1,65 @@
+:host {
+
+  display: inline-block;
+
+}
+
+.role-team {
+
+  display: inline-block;
+
+  width: fit-content;
+
+  max-width: 135px;
+
+  padding: 6px 10px;
+
+  border-radius: 4px;
+
+  text-align: center;
+
+  font-size: 14px;
+
+  font-family: Arial, sans-serif;
+
+}
+
+.role-team.village {
+
+  background: #0b2e01;
+
+  color: #39aa44;
+
+}
+
+.role-team.loup {
+
+  background: #4b0000;
+
+  color: #de5252;
+
+}
+
+.role-team.solitaire {
+
+  background: #360145;
+
+  color: #a74ac9;
+
+}
+
+.role-team.ambigu {
+
+  background: #00284c;
+
+  color: #527ee0;
+
+}
+
+.role-team.autres {
+
+  background: #5b3b00;
+
+  color: #e5a928;
+
+}

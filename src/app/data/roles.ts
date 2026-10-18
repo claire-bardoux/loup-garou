@@ -63,9 +63,7 @@ export const ROLES: Role[] = [
 
     description: [
 
-      'La Voyante fait partie du village.',
-
-      'Chaque nuit, elle peut découvrir le rôle d’un joueur de son choix.'
+      'La Voyante fait partie du village. Chaque nuit, elle peut découvrir le rôle d’un joueur de son choix.'
 
     ],
 
@@ -711,7 +709,7 @@ export const ROLES: Role[] = [
 
     image: '/assets/roles/Servante-devouee.webp',
 
-    team: 'village',
+    team: 'ambigu',
 
     description: [
 
@@ -913,7 +911,7 @@ export const ROLES: Role[] = [
 
     image: '/assets/roles/Enfant-sauvage.webp',
 
-    team: 'village',
+    team: 'ambigu',
 
     description: [
 
@@ -963,7 +961,7 @@ export const ROLES: Role[] = [
 
     image: '/assets/roles/chien-loup.webp',
 
-    team: 'village',
+    team: 'ambigu',
 
     description: [
 

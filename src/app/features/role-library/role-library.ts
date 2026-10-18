@@ -5,7 +5,7 @@ import { RoleCard } from '../../shared/components/role-card/role-card';
 import { SearchBar } from '../../shared/components/search-bar/search-bar';
 import { FilterButtons } from '../../shared/components/filter-buttons/filter-buttons';
 
-type Filter = 'tous' | 'village' | 'loup' | 'solitaire';
+type Filter = 'tous' | 'village' | 'loup' | 'solitaire' | 'ambigu' | 'autres';
 
 @Component({
   selector: 'app-role-library',
@@ -25,7 +25,9 @@ export class RoleLibrary {
     { label: 'Tous', value: 'tous' },
     { label: 'Loups', value: 'loup' },
     { label: 'Village', value: 'village' },
-    { label: 'Solitaires', value: 'solitaire' }
+    { label: 'Solitaires', value: 'solitaire' },
+    { label: 'Ambigus', value: 'ambigu' },
+    { label: 'Autres', value: 'autres' }
   ];
 
   filteredRoles = computed(() => {

@@ -1,18 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Young+Serif&display=swap');
 .role-card {
+
   background: #1b120d;
+
   border: 1px solid #c89435;
+
   border-radius: 5px;
 
   padding: 20px 16px;
 
   display: flex;
+
   flex-direction: column;
+
   align-items: center;
 
   height: 228px;
+
   max-width: 163px;
+
   position: relative;
+
 }
 
 .role-image-container {
@@ -58,17 +66,12 @@
   width: fit-content;
 }
 
-.role-team.village {
-  background: #064900;
-  color: #25c94a;
-}
 
-.role-team.loup {
-  background: #650000;
-  color: #ff3030;
-}
 
-.role-team.solitaire {
-  background: #5b3b00;
-  color: #e5a928;
+app-team-badge {
+
+  position: absolute;
+
+  bottom: 20px;
+
 }

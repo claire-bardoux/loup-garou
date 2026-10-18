@@ -1,0 +1,19 @@
+<span
+
+  class="role-team"
+
+  [class.village]="team() === 'village'"
+
+  [class.loup]="team() === 'loup'"
+
+  [class.solitaire]="team() === 'solitaire'"
+
+  [class.ambigu]="team() === 'ambigu'"
+
+  [class.autres]="team() === 'autres'"
+
+>
+
+  {{ team() | uppercase }}
+
+</span>

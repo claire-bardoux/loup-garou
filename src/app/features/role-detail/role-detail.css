@@ -1,10 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Young+Serif&display=swap');
 :host {
   display: block;
   min-height: 100vh;
   color: #d1c7b7;
-  font-family: serif;
   padding: 20px;
   box-sizing: border-box;
+}
+
+.h1 {
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .role-detail {
@@ -88,7 +93,6 @@ h1 {
   font-size: 1.3rem;
   margin-bottom: 10px;
   font-weight: normal;
-  border-bottom: 1px solid rgba(230, 188, 101, 0.2);
   padding-bottom: 4px;
 }
 
@@ -115,4 +119,19 @@ h1 {
   color: #e6bc65;
   font-size: 1.2rem;
   margin-top: 50px;
+}
+
+
+/* Grille responsive pour la section "Voir aussi" */
+.related-roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 15px;
+  width: 100%;
+}
+
+/* On retire le margin-bottom fixe de app-role-card dans ce contexte */
+.related-roles-grid app-role-card {
+  display: flex;
+  height: 100%;
 }

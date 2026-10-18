@@ -1,12 +1,13 @@
-import { UpperCasePipe } from "@angular/common";
 import { Component, computed, inject } from "@angular/core";
-import { ActivatedRoute, RouterLink } from "@angular/router";
+import { ActivatedRoute } from "@angular/router";
 import { ROLES } from "../../data/roles";
+import { TeamBadge } from "../../shared/components/team-badge/team-badge";
+import { RoleCard } from "../../shared/components/role-card/role-card";
 
 
 @Component({
 selector: 'app-role-detail',
-imports: [RouterLink, UpperCasePipe],
+imports: [ TeamBadge, RoleCard ],
 templateUrl: './role-detail.html',
 styleUrl: './role-detail.css',
 })
