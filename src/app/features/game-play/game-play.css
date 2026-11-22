@@ -4,12 +4,10 @@
 .play-header { display: grid; min-height: 42px; grid-template-columns: 42px 1fr 42px; align-items: center; gap: 10px; }
 .play-header h1 { margin: 0; color: #e6ad4e; font: 700 1.4rem Georgia, 'Times New Roman', serif; }
 .back-button, .library-button { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid #bd8e3e; border-radius: 50%; color: #e6ad4e; font-size: 1.4rem; text-decoration: none; }
-.library-button { font-size: 1rem; }
 .sleep-screen { display: grid; flex: 1; align-content: center; justify-items: center; gap: 0; text-align: center; }
 .sleep-screen > p, .sleep-screen h2 { margin: 0; color: #e6ad4e; font: 700 clamp(2.3rem, 11vw, 3.7rem) Georgia, 'Times New Roman', serif; text-transform: uppercase; }
 .sleep-stars { margin: 34px 0 64px; color: #e6ad4e; font-size: 1.5rem; letter-spacing: .65rem; }
 .primary-button { display: flex; width: 100%; min-height: 52px; align-items: center; justify-content: center; gap: 14px; padding: 8px 14px; border: 0; background: #e6b253; color: #21170c; font: inherit; font-weight: 700; cursor: pointer; }
-.primary-button span { font-size: 1.3rem; }
 .primary-button:disabled { opacity: .4; cursor: not-allowed; }
 .night-content, .day-content, .vote-content, .result-content { min-height: 0; flex: 1; overflow-y: auto; padding: 4px 2px 16px; }
 .section-title { margin: 2px 0 20px; }
@@ -51,7 +49,7 @@
 .game-over { align-content: start; padding-top: 24px; }
 .game-over h3 { margin: 8px 0 0; color: #e6ad4e; }
 .game-over .victory-message { padding: 12px; border: 1px solid #c89435; color: #f3d38c; }
-.game-over .primary-button { color: #21170c; text-decoration: none; }
+.game-over .primary-button { text-decoration: none; }
 .modal-backdrop { position: fixed; z-index: 6; inset: 0; display: grid; place-items: center; padding: 18px; background: rgb(0 0 0 / 76%); }
 .action-modal { display: grid; width: min(100%, 350px); max-height: 90svh; gap: 12px; overflow-y: auto; padding: 24px; border: 1px solid #c89435; background: #21170f; box-shadow: 0 18px 60px rgb(0 0 0 / 55%); text-align: center; }
 .action-modal h2 { margin: 0; color: #e6ad4e; font: 700 1.18rem Georgia, 'Times New Roman', serif; }
@@ -70,20 +68,13 @@
 .sectarian-groups > div { display: grid; grid-template-columns: 1fr 42px 42px; align-items: center; gap: 6px; text-align: left; }
 .sectarian-groups button { min-height: 36px; border: 1px solid #9b7135; background: #352518; color: #e6b253; }
 .sectarian-groups button.selected { background: #e6b253; color: #21170c; }
-.private-role-backdrop { position: fixed; z-index: 8; inset: 0; display: grid; place-items: center; padding: 24px; background: #100d0b; background-image: linear-gradient(180deg, rgb(8 10 10 / 28%), rgb(8 9 9 / 18%) 55%, rgb(16 13 11 / 62%)), url('/assets/images/background.png'); background-position: center; background-size: cover; }
+.private-role-backdrop { position: fixed; z-index: 8; inset: 0; display: grid; place-items: center; padding: 24px; background: #100d0b; }
 .private-role-screen { position: relative; display: grid; width: 100%; height: 100%; align-content: center; justify-items: center; gap: 22px; text-align: center; }
 .private-role-screen > p { margin: 0; color: #e6ad4e; font: 700 clamp(1.45rem, 7vw, 2.1rem) Georgia, 'Times New Roman', serif; }
 .private-role-screen img { width: min(76vw, 350px); max-height: 60svh; aspect-ratio: 1; object-fit: contain; background: #100d0b; box-shadow: 0 12px 44px rgb(0 0 0 / 48%); }
 .private-role-screen h1 { max-width: 100%; margin: 0; color: #e6ad4e; font: 700 clamp(1.7rem, 8vw, 2.6rem) Georgia, 'Times New Roman', serif; }
 .hide-role-button { position: absolute; top: 0; right: 0; display: grid; width: 44px; height: 44px; place-items: center; border: 1px solid #bd8e3e; border-radius: 50%; background: rgb(16 13 11 / 80%); color: #e6ad4e; font-size: 1.7rem; cursor: pointer; }
 :focus-visible { outline: 3px solid #fff0c7; outline-offset: 3px; }
-@media (max-width: 360px) {
-  .play-screen { padding-right: 16px; padding-left: 16px; }
-  .role-grid { gap: 16px 10px; }
-  .role-tile { min-height: 94px; font-size: .69rem; }
-  .role-tile img { width: 52px; }
-  .action-modal { padding: 20px 16px; }
-}
 @media (min-width: 900px) {
   :host { background: linear-gradient(90deg, rgb(10 8 7 / 84%), rgb(10 8 7 / 38%) 50%, rgb(10 8 7 / 84%)), url('/assets/images/background.png') center / cover; }
   .play-screen { width: min(100%, 1080px); padding: 30px clamp(36px, 5vw, 72px); background: rgb(16 13 11 / 64%); box-shadow: 0 0 70px rgb(0 0 0 / 38%); }

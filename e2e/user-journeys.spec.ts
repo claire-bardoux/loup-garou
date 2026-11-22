@@ -34,7 +34,7 @@ test('configuration, résumé et distribution des rôles', async ({ page }) => {
 
 test('la page reste dans la largeur sur mobile', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
-  for (const route of ['/', '/game-setup', '/role-library']) {
+  for (const route of ['/', '/game-setup', '/role-library', '/game-play']) {
     await page.goto(route);
     const dimensions = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
