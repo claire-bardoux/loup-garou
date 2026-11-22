@@ -30,6 +30,23 @@ test('configuration, résumé et distribution des rôles', async ({ page }) => {
   await page.getByRole('button', { name: 'Découvrir le rôle' }).click();
   await expect(page.getByRole('heading', { name: 'Camille, tu es' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Passer au joueur suivant' })).toBeVisible();
+  await page.getByRole('button', { name: 'Passer au joueur suivant' }).click();
+
+  for (let playerNumber = 2; playerNumber <= 14; playerNumber += 1) {
+    await expect(page.getByRole('heading', { name: `Joueur n°${playerNumber}, choisis ta carte !` })).toBeVisible();
+    await page.getByRole('button', { name: /Choisir une carte, numéro/ }).first().click();
+    await page.getByLabel('Nom du joueur').fill(`Joueur ${playerNumber}`);
+    await page.getByRole('button', { name: 'Découvrir le rôle' }).click();
+
+    if (playerNumber < 14) {
+      await page.getByRole('button', { name: 'Passer au joueur suivant' }).click();
+    } else {
+      await expect(page.getByRole('heading', { name: 'Joueur 14, tu es' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'La partie va commencer' })).toHaveCount(0);
+      await page.getByRole('button', { name: 'Terminer' }).click();
+      await expect(page.getByRole('heading', { name: 'La partie va commencer' })).toBeVisible();
+    }
+  }
 });
 
 test('la page reste dans la largeur sur mobile', async ({ page }) => {

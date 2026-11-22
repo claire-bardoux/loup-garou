@@ -41,6 +41,55 @@ describe('RoleSummary', () => {
     expect(summary.revealedAssignment()?.name).toBe('Alice');
   });
 
+  it('attend la fermeture de la dernière révélation avant d’afficher la fin de distribution', async () => {
+    await TestBed.configureTestingModule({ imports: [RoleSummary], providers: [provideRouter([])] }).compileComponents();
+    const session = TestBed.inject(GameSession);
+    session.setDraft(2, [
+      ROLES.find((role) => role.id === 'voyante')!,
+      ROLES.find((role) => role.id === 'simple-villageois')!,
+    ]);
+    const fixture = TestBed.createComponent(RoleSummary);
+    const summary = fixture.componentInstance;
+    summary.continue();
+
+    for (const name of ['Alice', 'Bob']) {
+      summary.chooseCard(summary.cards()[0].index);
+      summary.playerName.set(name);
+      summary.revealRole();
+      fixture.detectChanges();
+      if (name === 'Alice') {
+        summary.closeReveal();
+        fixture.detectChanges();
+      }
+    }
+
+    expect(summary.distributionComplete()).toBe(true);
+    expect(fixture.nativeElement.querySelector('#role-reveal-title')?.textContent).toContain('Bob, tu es');
+    expect(fixture.nativeElement.querySelector('#completion-title')).toBeNull();
+
+    summary.closeReveal();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#completion-title')?.textContent).toContain('La partie va commencer');
+  });
+
+  it('mélange les équipes au lancement de la distribution sans perdre de cartes', async () => {
+    await TestBed.configureTestingModule({ imports: [RoleSummary], providers: [provideRouter([])] }).compileComponents();
+    const session = TestBed.inject(GameSession);
+    const roles = [
+      ...Array(4).fill(ROLES.find((role) => role.id === 'simple-villageois')!),
+      ...Array(2).fill(ROLES.find((role) => role.id === 'loup-garou')!),
+      ROLES.find((role) => role.id === 'ange')!,
+      ROLES.find((role) => role.id === 'chien-loup')!,
+    ];
+    session.setDraft(8, roles);
+    const summary = TestBed.createComponent(RoleSummary).componentInstance;
+
+    summary.continue();
+
+    expect(session.roles()).toHaveLength(roles.length);
+    expect(session.roles().every((role, index) => index === 0 || role.team !== session.roles()[index - 1].team)).toBe(true);
+  });
+
   it('ignore les indices invalides et ne révèle pas un nom vide', async () => {
     await TestBed.configureTestingModule({ imports: [RoleSummary], providers: [provideRouter([])] }).compileComponents();
     const session = TestBed.inject(GameSession);

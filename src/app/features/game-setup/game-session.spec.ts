@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROLES } from '../../data/roles';
-import { GameSession } from './game-session';
+import { GameSession, interleaveRolesByTeam } from './game-session';
 
 describe('GameSession', () => {
   it('sauvegarde une copie du brouillon et réinitialise les attributions', () => {
@@ -26,5 +26,20 @@ describe('GameSession', () => {
     session.setPlayerAssignments([assignment]);
     expect(session.compositionChosen()).toBe(true);
     expect(session.playerAssignments()).toEqual([assignment]);
+  });
+
+  it('mélange les équipes pour éviter les longues séries dans l’ordre de distribution', () => {
+    const roles = [
+      ...Array(4).fill(ROLES.find((role) => role.id === 'simple-villageois')!),
+      ...Array(2).fill(ROLES.find((role) => role.id === 'loup-garou')!),
+      ROLES.find((role) => role.id === 'ange')!,
+      ROLES.find((role) => role.id === 'chien-loup')!,
+    ];
+
+    const result = interleaveRolesByTeam(roles, () => 0.5);
+
+    expect(result).toHaveLength(roles.length);
+    expect(result.map((role) => role.id).sort()).toEqual(roles.map((role) => role.id).sort());
+    expect(result.every((role, index) => index === 0 || role.team !== result[index - 1].team)).toBe(true);
   });
 });

@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { Role, RoleTeam } from '../../models /role.model';
-import { GameSession } from '../game-setup/game-session';
+import { GameSession, interleaveRolesByTeam } from '../game-setup/game-session';
 
 interface TeamSection {
   key: RoleTeam;
@@ -58,6 +58,7 @@ export class RoleSummary {
   }
 
   continue(): void {
+    this.session.setDistributionOrder(interleaveRolesByTeam(this.session.roles()));
     this.distributionStarted.set(true);
   }
 
