@@ -1,5 +1,18 @@
 <main class="library">
 
+  @if (cameFromGameSetup) {
+    <header class="builder-header">
+      <a class="setup-return" routerLink="/game-setup">← Paramétrage</a>
+      <h1>Créer ma composition</h1>
+      <p>Choisis {{ session.playerCount() }} rôles pour préparer la distribution.</p>
+      <div class="selection-status" aria-live="polite">
+        <strong>{{ selectedRoleCount() }} / {{ session.playerCount() }} rôles</strong>
+        @if (remainingRoles() > 0) { <span>Encore {{ remainingRoles() }} à choisir</span> }
+        @else { <span>Composition complète</span> }
+      </div>
+    </header>
+  }
+
   <app-search-bar
      placeholder="Rechercher un rôle"
     (searchChange)="onSearchChange($event)"
@@ -24,9 +37,23 @@
       <app-role-card
         [role]="role"
       />
+      @if (cameFromGameSetup) {
+        <div class="role-picker" [attr.aria-label]="'Quantité de ' + role.name">
+          <button type="button" (click)="adjustRole(role.id, -1)" [disabled]="roleCount(role.id) === 0" [attr.aria-label]="'Retirer un ' + role.name">−</button>
+          <output>{{ roleCount(role.id) }}</output>
+          <button type="button" (click)="adjustRole(role.id, 1)" [disabled]="remainingRoles() === 0" [attr.aria-label]="'Ajouter un ' + role.name">+</button>
+        </div>
+      }
 
     }
 
   </section>
+
+  @if (cameFromGameSetup) {
+    <footer class="builder-footer">
+      <a routerLink="/game-setup">Retour à la proposition</a>
+      <button type="button" (click)="saveComposition()" [disabled]="remainingRoles() !== 0">Valider la composition <span aria-hidden="true">→</span></button>
+    </footer>
+  }
 
 </main>
