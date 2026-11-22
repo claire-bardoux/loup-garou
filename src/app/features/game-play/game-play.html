@@ -30,6 +30,9 @@
           </button>
         }
       </div>
+      @if (nightActionMessage()) {
+        <section class="info-card" role="status" aria-live="polite"><h2>Résultat du pouvoir</h2><p>{{ nightActionMessage() }}</p></section>
+      }
       @if (otherRoles().length) {
         <section class="other-roles">
           <h2>Autres rôles à ne pas appeler cette nuit</h2>
@@ -62,6 +65,7 @@
           <p>Personne n’est mort !</p>
         }
         @if (victimInfected()) { <p class="infected-note">La victime des loups a été infectée.</p> }
+        @if (nightActionMessage()) { <p class="night-action-result" role="status">{{ nightActionMessage() }}</p> }
       </section>
       @if (infoMessage()) {
         <section class="info-card"><h2>Infos MJ</h2><p>{{ infoMessage() }}</p></section>
@@ -246,6 +250,19 @@
             }
           </div>
           <button type="button" class="primary-button" [disabled]="!canConfirmCall()" (click)="confirmCall()">{{ call.action === 'thief' ? 'Choisir ce rôle' : 'Emprunter ce pouvoir' }}</button>
+        } @else if (call.action === 'fox') {
+          <p class="target-hint">{{ selectedTargets().length }} / {{ call.targets }} joueur(s) choisi(s)</p>
+          <div class="target-list">
+            @for (name of targetNames(); track name) {
+              <button type="button" [class.selected]="selectedTargets().includes(name)" [disabled]="foxFoundWolf() !== null" (click)="toggleTarget(name)">{{ name }}</button>
+            }
+          </div>
+          @if (foxFoundWolf() === null) {
+            <button type="button" class="primary-button" [disabled]="!canConfirmCall()" (click)="revealFoxResult()">Révéler le résultat</button>
+          } @else {
+            <p class="fox-result" role="status" aria-live="polite">{{ nightActionMessage() }}</p>
+            <button type="button" class="primary-button" (click)="confirmCall()">Passer au rôle suivant</button>
+          }
         } @else if (call.action === 'witch') {
           <p class="victim-call">La victime des loups est {{ nightVictim() ?? 'inconnue' }}.</p>
           <div class="witch-actions">

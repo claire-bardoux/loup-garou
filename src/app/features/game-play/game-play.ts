@@ -53,6 +53,7 @@ export class GamePlay {
   readonly witchHealUsed = signal(false);
   readonly witchPoisonUsed = signal(false);
   readonly foxPowerLost = signal(false);
+  readonly foxFoundWolf = signal<boolean | null>(null);
   readonly secondVoteReady = signal<string[]>([]);
   readonly comedianRolesUsed = signal<string[]>([]);
   readonly comedianBorrowed = signal<Record<string, Role>>({});
@@ -96,6 +97,7 @@ export class GamePlay {
   readonly successionMessage = signal('');
   readonly successionReturnsToMorning = signal(false);
   readonly infoMessage = signal('');
+  readonly nightActionMessage = signal('');
   readonly firstVillageVoteDone = signal(false);
 
   readonly roleFor = (name: string): Role => this.roleOverrides()[name]
@@ -222,6 +224,7 @@ export class GamePlay {
   toggleTarget(name: string): void {
     const max = this.validTargetCount();
     const selected = this.selectedTargets();
+    if (this.currentCall()?.action === 'fox' && this.foxFoundWolf() !== null) return;
     if (selected.includes(name)) this.selectedTargets.set(selected.filter((item) => item !== name));
     else if (max > 0 && selected.length < max) this.selectedTargets.set([...selected, name]);
     else if (this.currentCall()?.id === 'sorciere') this.poisonedPlayer.set(name);
@@ -238,7 +241,7 @@ export class GamePlay {
 
   confirmCall(): void {
     const call = this.currentCall();
-    if (!call || !this.canConfirmCall()) return;
+    if (!call || !this.canConfirmCall() || (call.action === 'fox' && this.foxFoundWolf() === null)) return;
     const actorName = call.id === 'comedien-pouvoir'
       ? this.assignments().find((player) => this.aliveNames().includes(player.name) && this.roleFor(player.name).id === 'comedien')?.name
       : this.assignments().find((player) => this.roleFor(player.name).id === call.id)?.name;
@@ -281,13 +284,9 @@ export class GamePlay {
       this.poisonedPlayer.set(this.selectedTargets()[0] ?? null);
       this.witchPoisonUsed.set(true);
     }
-    if (call.action === 'fox') {
-      const wolfFound = this.assignments().some((player) => this.selectedTargets().includes(player.name) && player.role.team === 'loup');
-      this.infoMessage.set(wolfFound ? 'Au moins un loup se trouve parmi ces joueurs.' : 'Aucun loup parmi ces joueurs. Le Renard perd son pouvoir.');
-      if (!wolfFound && actorName) {
-        this.foxPowerLost.set(true);
-        this.roleOverrides.update((overrides) => ({ ...overrides, [actorName]: SIMPLE_VILLAGER }));
-      }
+    if (call.action === 'fox' && call.id === 'renard' && this.foxFoundWolf() === false) {
+      this.foxPowerLost.set(true);
+      if (actorName) this.roleOverrides.update((overrides) => ({ ...overrides, [actorName]: SIMPLE_VILLAGER }));
     }
     if (call.firstNightOnly && this.servanteFirstNightRole() === call.id) this.servanteFirstNightRole.set(null);
     this.calledIds.set([...this.calledIds(), call.id]);
@@ -295,6 +294,23 @@ export class GamePlay {
     this.selectedTargets.set([]);
     this.revealedPlayerRole.set(null);
     this.roleHasBeenRevealed.set(false);
+  }
+
+  revealFoxResult(): void {
+    const call = this.currentCall();
+    if (!call || call.action !== 'fox' || !this.canConfirmCall() || this.foxFoundWolf() !== null) return;
+
+    const wolfFound = this.assignments().some((player) => this.selectedTargets().includes(player.name) && this.roleFor(player.name).team === 'loup');
+    this.foxFoundWolf.set(wolfFound);
+    if (call.id === 'renard') {
+      this.nightActionMessage.set(wolfFound
+        ? 'Au moins un loup parmi ces joueurs : le Renard garde son pouvoir et pourra être appelé la prochaine nuit.'
+        : 'Aucun loup parmi ces joueurs : le Renard perd son pouvoir et devient Simple Villageois.');
+    } else {
+      this.nightActionMessage.set(wolfFound
+        ? 'Au moins un loup parmi ces joueurs : le Comédien réussit son pouvoir emprunté.'
+        : 'Aucun loup parmi ces joueurs : le pouvoir emprunté du Renard échoue.');
+    }
   }
 
   markVictimSaved(): void {
@@ -446,7 +462,10 @@ export class GamePlay {
       this.witchPoisonUsed.set(false);
     }
     if (roleId === 'infect-pere-des-loups') this.infectionUsed.set(false);
-    if (roleId === 'renard') this.foxPowerLost.set(false);
+    if (roleId === 'renard') {
+      this.foxPowerLost.set(false);
+      this.foxFoundWolf.set(null);
+    }
     if (roleId === 'juge-begue') {
       this.jesterSignSet.set(false);
       this.jesterSign.set('');
@@ -685,6 +704,8 @@ export class GamePlay {
     this.successionMessage.set('');
     this.successionReturnsToMorning.set(false);
     this.infoMessage.set('');
+    this.nightActionMessage.set('');
+    this.foxFoundWolf.set(null);
     this.victimInfected.set(false);
     this.comedianCurrentNightRole.set(null);
     this.phase.set('sleep');

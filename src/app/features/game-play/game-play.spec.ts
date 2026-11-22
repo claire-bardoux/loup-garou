@@ -175,6 +175,45 @@ describe('GamePlay', () => {
     expect(game.calls().find(({ id }) => id === 'loups')?.prompt).toContain('La Petite Fille peut tenter de les observer');
   });
 
+  it.each([
+    ['Joueur 2', 'Joueur 4', 'Joueur 5', 'garde son pouvoir'],
+    ['Joueur 4', 'Joueur 5', 'Joueur 6', 'perd son pouvoir'],
+  ])('révèle avec un bouton si le Renard %s, %s, %s', async (first, second, third, expectedResult) => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const session = TestBed.inject(GameSession);
+    const roles = ['renard', 'loup-garou', 'loup-garou', ...Array(6).fill('simple-villageois')]
+      .map((id) => ROLES.find((role) => role.id === id)!);
+    const assignments = roles.map((role, cardIndex) => ({ name: `Joueur ${cardIndex + 1}`, role, cardIndex }));
+    session.setDraft(assignments.length, roles);
+    session.setPlayerAssignments(assignments);
+    const fixture = TestBed.createComponent(GamePlay);
+    const game = fixture.componentInstance;
+    game.startNight();
+    game.openCall('renard');
+    game.toggleTarget(first);
+    game.toggleTarget(second);
+    game.toggleTarget(third);
+    fixture.detectChanges();
+
+    const revealButton = [...fixture.nativeElement.querySelectorAll('button')]
+      .find((button: HTMLButtonElement) => button.textContent?.trim() === 'Révéler le résultat') as HTMLButtonElement | undefined;
+    expect(revealButton).toBeDefined();
+    revealButton!.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain(expectedResult);
+    expect(game.foxPowerLost()).toBe(false);
+    expect(game.currentCall()?.id).toBe('renard');
+    expect(game.calledIds()).not.toContain('renard');
+
+    const nextRoleButton = [...fixture.nativeElement.querySelectorAll('button')]
+      .find((button: HTMLButtonElement) => button.textContent?.trim() === 'Passer au rôle suivant') as HTMLButtonElement | undefined;
+    expect(nextRoleButton).toBeDefined();
+    nextRoleButton!.click();
+    expect(game.calledIds()).toContain('renard');
+    expect(game.foxPowerLost()).toBe(expectedResult === 'perd son pouvoir');
+  });
+
   it('appelle la Sorcière avant l’Infect Père et empêche l’infection si elle sauve la victime', async () => {
     await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
     const session = TestBed.inject(GameSession);
