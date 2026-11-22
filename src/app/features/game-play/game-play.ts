@@ -57,6 +57,7 @@ export class GamePlay {
   readonly comedianRolesUsed = signal<string[]>([]);
   readonly comedianBorrowed = signal<Record<string, Role>>({});
   readonly comedianCurrentNightRole = signal<Role | null>(null);
+  readonly comedianNightsPlayed = signal(0);
   readonly jesterSignSet = signal(false);
   readonly jesterSign = signal('');
   readonly secondVoteUsed = signal(false);
@@ -66,6 +67,8 @@ export class GamePlay {
   readonly winnerMessage = signal('');
   readonly pendingHunter = signal<string | null>(null);
   readonly pendingServante = signal<string | null>(null);
+  readonly servanteDeclinedVictim = signal<string | null>(null);
+  readonly servanteFirstNightRole = signal<string | null>(null);
   readonly deathQueue = signal<string[]>([]);
   readonly deathQueueCause = signal<'night' | 'vote' | 'power'>('night');
   readonly nightVictim = signal<string | null>(null);
@@ -93,7 +96,6 @@ export class GamePlay {
   readonly successionMessage = signal('');
   readonly successionReturnsToMorning = signal(false);
   readonly infoMessage = signal('');
-  readonly servanteUsed = signal(false);
   readonly firstVillageVoteDone = signal(false);
 
   readonly roleFor = (name: string): Role => this.roleOverrides()[name]
@@ -107,17 +109,16 @@ export class GamePlay {
       const player = actor(id);
       if (player) calls.push({ id, label: this.roleFor(player.name).name, role: this.roleFor(player.name), prompt, targets, action, ...(firstNightOnly ? { firstNightOnly: true } : {}) });
     };
-    if (this.nightNumber() === 1) {
-      add('voleur', 'thief', 'Le Voleur regarde les cartes de réserve et choisit son nouveau personnage.', 0, true);
-      add('enfant-sauvage', 'mentor', 'Demande à l’Enfant Sauvage de choisir un mentor. Il changera de camp si cette personne meurt.', 1, true);
-      add('chien-loup', 'dog-wolf', 'Le Chien-Loup choisit secrètement le camp qu’il rejoindra pour la partie.', 0, true);
-      add('cupidon', 'cupidon', 'Demande à Cupidon de désigner deux joueurs qui deviennent amoureux.', 2, true);
-      add('juge-begue', 'judge', 'Le Juge Bègue choisit un signe secret pour demander un second vote une fois dans la partie.', 0, true);
-      add('abominable-sectaire', 'sectarian', 'Le Maître du Jeu répartit les joueurs entre deux groupes secrets, puis choisit le groupe de l’Abominable Sectaire.', 0, true);
-      add('deux-soeurs', 'recognize', 'Réveille les Deux Sœurs pour qu’elles se reconnaissent.', 0, true);
-      add('trois-freres', 'recognize', 'Réveille les Trois Frères pour qu’ils se reconnaissent.', 0, true);
-    }
-    if (this.nightNumber() <= 3 && this.reserveCards().some((role) => !this.comedianRolesUsed().includes(role.id))) {
+    const resetRole = this.servanteFirstNightRole();
+    if (this.nightNumber() === 1 || resetRole === 'voleur') add('voleur', 'thief', 'Le Voleur regarde les cartes de réserve et choisit son nouveau personnage.', 0, true);
+    if (this.nightNumber() === 1 || resetRole === 'enfant-sauvage') add('enfant-sauvage', 'mentor', 'Demande à l’Enfant Sauvage de choisir un mentor. Il changera de camp si cette personne meurt.', 1, true);
+    if (this.nightNumber() === 1 || resetRole === 'chien-loup') add('chien-loup', 'dog-wolf', 'Le Chien-Loup choisit secrètement le camp qu’il rejoindra pour la partie.', 0, true);
+    if (this.nightNumber() === 1 || resetRole === 'cupidon') add('cupidon', 'cupidon', 'Demande à Cupidon de désigner deux joueurs qui deviennent amoureux.', 2, true);
+    if (this.nightNumber() === 1 || resetRole === 'juge-begue') add('juge-begue', 'judge', 'Le Juge Bègue choisit un signe secret pour demander un second vote une fois dans la partie.', 0, true);
+    if (this.nightNumber() === 1 || resetRole === 'abominable-sectaire') add('abominable-sectaire', 'sectarian', 'Le Maître du Jeu répartit les joueurs entre deux groupes secrets, puis choisit le groupe de l’Abominable Sectaire.', 0, true);
+    if (this.nightNumber() === 1 || resetRole === 'deux-soeurs') add('deux-soeurs', 'recognize', 'Réveille les Deux Sœurs pour qu’elles se reconnaissent.', 0, true);
+    if (this.nightNumber() === 1 || resetRole === 'trois-freres') add('trois-freres', 'recognize', 'Réveille les Trois Frères pour qu’elles se reconnaissent.', 0, true);
+    if (this.comedianNightsPlayed() < 3 && this.reserveCards().some((role) => !this.comedianRolesUsed().includes(role.id))) {
       add('comedien', 'comedian', 'Le Comédien choisit un rôle de réserve inutilisé et emprunte son pouvoir pour cette nuit.');
     }
     const borrowed = this.comedianCurrentNightRole();
@@ -130,13 +131,19 @@ export class GamePlay {
     }
     add('voyante', 'seer', 'Demande à la Voyante de désigner un joueur dont elle veut connaître le rôle.', 1);
     const wolves = players.find((player) => this.aliveNames().includes(player.name) && !this.infectedDeathsTonight().includes(player.name) && (this.roleFor(player.name).team === 'loup' || this.roleFor(player.name).id === 'loup-garou-blanc'))?.role;
-    if (wolves) calls.push({ id: 'loups', label: 'Les Loups', role: wolves, prompt: 'Réveille les loups. Ils choisissent ensemble un joueur à éliminer.', targets: 1, action: 'wolves' });
+    if (wolves) {
+      const littleGirlAlive = players.some((player) => this.aliveNames().includes(player.name) && this.roleFor(player.name).id === 'petite-fille');
+      const prompt = littleGirlAlive
+        ? 'Réveille les loups. La Petite Fille peut tenter de les observer pendant leur choix. Ils choisissent ensemble un joueur à éliminer.'
+        : 'Réveille les loups. Ils choisissent ensemble un joueur à éliminer.';
+      calls.push({ id: 'loups', label: 'Les Loups', role: wolves, prompt, targets: 1, action: 'wolves' });
+    }
+    if (!this.witchHealUsed() || !this.witchPoisonUsed()) add('sorciere', 'witch', 'Présente à la Sorcière la victime des loups. Chaque potion ne peut être utilisée qu’une fois.');
     if (this.nightNumber() % 2 === 0) add('loup-garou-blanc', 'white-wolf', 'Le Loup-Garou Blanc peut éliminer un autre loup cette nuit.', 1);
     if (actor('grand-mechant-loup') && players.filter((player) => this.aliveNames().includes(player.name) && this.roleFor(player.name).team === 'loup').length > 1) {
       add('grand-mechant-loup', 'grand-wolf', 'Tant qu’aucun autre loup n’est mort, le Grand Méchant Loup peut choisir une victime supplémentaire.', 1);
     }
-    if (this.nightVictim() && !this.infectionUsed() && !this.victimInfected()) add('infect-pere-des-loups', 'infect', 'Le Père des Loups peut infecter la victime des loups au lieu de la laisser mourir.');
-    if (!this.witchHealUsed() || !this.witchPoisonUsed()) add('sorciere', 'witch', 'Présente à la Sorcière la victime des loups. Chaque potion ne peut être utilisée qu’une fois.');
+    if (this.nightVictim() && !this.savedVictim() && !this.infectionUsed() && !this.victimInfected()) add('infect-pere-des-loups', 'infect', 'Le Père des Loups peut infecter la victime des loups au lieu de la laisser mourir.');
     if (!this.foxPowerLost()) add('renard', 'fox', 'Demande au Renard de désigner trois joueurs. Dis-lui si au moins un loup se trouve parmi eux.', 3);
     return calls;
   });
@@ -257,6 +264,7 @@ export class GamePlay {
     if (call.action === 'comedian' && actorName) {
       const selected = this.reserveCards().find((role) => role.id === this.reserveSelection());
       if (selected) {
+        this.comedianNightsPlayed.update((nights) => nights + 1);
         this.comedianRolesUsed.update((used) => [...used, selected.id]);
         this.comedianBorrowed.update((roles) => ({ ...roles, [actorName]: selected }));
         this.comedianCurrentNightRole.set(selected);
@@ -281,6 +289,7 @@ export class GamePlay {
         this.roleOverrides.update((overrides) => ({ ...overrides, [actorName]: SIMPLE_VILLAGER }));
       }
     }
+    if (call.firstNightOnly && this.servanteFirstNightRole() === call.id) this.servanteFirstNightRole.set(null);
     this.calledIds.set([...this.calledIds(), call.id]);
     this.activeCallId.set(null);
     this.selectedTargets.set([]);
@@ -343,7 +352,7 @@ export class GamePlay {
     while (this.deathQueue().length) {
       const next = this.deathQueue()[0];
       const servant = this.assignments().find((player) => this.aliveNames().includes(player.name) && this.roleFor(player.name).id === 'servante-devouee');
-      if (this.deathQueueCause() === 'night' && next === this.nightVictim() && servant && !this.servanteUsed() && !this.lovers().includes(servant.name)) {
+      if (this.deathQueueCause() === 'vote' && next === this.eliminatedPlayerName() && next !== this.servanteDeclinedVictim() && servant && !this.lovers().includes(servant.name)) {
         this.pendingServante.set(servant.name);
         this.eliminatedPlayerName.set(next);
         this.phase.set('servante-choice');
@@ -412,8 +421,10 @@ export class GamePlay {
     const servant = this.pendingServante();
     const eliminated = this.eliminatedPlayerName();
     if (!servant || !eliminated) return;
-    this.roleOverrides.update((overrides) => ({ ...overrides, [servant]: this.roleFor(eliminated) }));
-    this.servanteUsed.set(true);
+    const takenRole = this.roleFor(eliminated);
+    this.roleOverrides.update((overrides) => ({ ...overrides, [servant]: takenRole }));
+    this.resetTakenRolePower(takenRole.id, servant);
+    this.servanteDeclinedVictim.set(null);
     this.pendingServante.set(null);
     this.deathQueue.set(this.deathQueue().filter((name) => name !== eliminated));
     this.aliveNames.set(this.aliveNames().filter((name) => name !== eliminated));
@@ -422,9 +433,45 @@ export class GamePlay {
   }
 
   declineServanteRole(): void {
-    this.servanteUsed.set(true);
+    this.servanteDeclinedVictim.set(this.eliminatedPlayerName());
     this.pendingServante.set(null);
     this.processDeathQueue(this.deathQueueCause() === 'vote' ? 'result' : 'morning');
+  }
+
+  private resetTakenRolePower(roleId: string, holder: string): void {
+    const firstNightRoles = ['voleur', 'enfant-sauvage', 'chien-loup', 'cupidon', 'juge-begue', 'abominable-sectaire', 'deux-soeurs', 'trois-freres'];
+    if (firstNightRoles.includes(roleId)) this.servanteFirstNightRole.set(roleId);
+    if (roleId === 'sorciere') {
+      this.witchHealUsed.set(false);
+      this.witchPoisonUsed.set(false);
+    }
+    if (roleId === 'infect-pere-des-loups') this.infectionUsed.set(false);
+    if (roleId === 'renard') this.foxPowerLost.set(false);
+    if (roleId === 'juge-begue') {
+      this.jesterSignSet.set(false);
+      this.jesterSign.set('');
+      this.secondVoteUsed.set(false);
+      this.secondVoteInProgress.set(false);
+      this.secondVoteReady.set([]);
+    }
+    if (roleId === 'abominable-sectaire') {
+      this.villageGroups.set({});
+      this.sectarianGroup.set(null);
+    }
+    if (roleId === 'chasseur') this.hunterUsed.update((used) => used.filter((name) => name !== holder));
+    if (roleId === 'enfant-sauvage') this.mentorByName.update((mentors) => {
+      const { [holder]: _previousMentor, ...remainingMentors } = mentors;
+      return remainingMentors;
+    });
+    if (roleId === 'chien-loup') this.dogWolfChoice.set(null);
+    if (roleId === 'comedien') {
+      this.comedianNightsPlayed.set(0);
+      this.comedianCurrentNightRole.set(null);
+      this.comedianBorrowed.update((borrowed) => {
+        const { [holder]: _previousBorrow, ...remainingBorrowed } = borrowed;
+        return remainingBorrowed;
+      });
+    }
   }
 
   private checkVictory(): boolean {
@@ -598,12 +645,6 @@ export class GamePlay {
 
   private eliminatePlayer(name: string): void {
     this.eliminatedPlayerName.set(name);
-    if (this.roleFor(name).id === 'ange' && !this.firstVillageVoteDone()) {
-      this.firstVillageVoteDone.set(true);
-      this.finishGame('L’Ange remporte la partie : il a été éliminé au premier vote du village.');
-      return;
-    }
-    if (this.roleFor(name).id === 'ange') this.roleOverrides.update((overrides) => ({ ...overrides, [name]: SIMPLE_VILLAGER }));
     this.resolveDeaths([name], 'vote', 'result');
     this.firstVillageVoteDone.set(true);
   }
@@ -650,7 +691,7 @@ export class GamePlay {
   }
 
   nameOf(role: Role): string {
-    return this.assignments().find((player) => player.role.id === role.id)?.name ?? 'Joueur';
+    return this.assignments().find((player) => this.roleFor(player.name).id === role.id)?.name ?? 'Joueur';
   }
 
   actorForCall(call: NightCall): string {

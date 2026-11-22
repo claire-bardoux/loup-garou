@@ -713,7 +713,7 @@ export const ROLES: Role[] = [
 
     description: [
 
-      'La Servante Dévouée peut prendre le rôle de la victime des loups.'
+      'Quand le village élimine un joueur, la Servante Dévouée peut prendre son rôle avant que sa carte ne soit révélée.'
 
     ],
 
@@ -721,7 +721,7 @@ export const ROLES: Role[] = [
 
       'La Servante Dévouée est un rôle ambigu.',
 
-      'Elle peut récupérer la carte de la victime des loups et incarner ce rôle jusqu’à sa mort ou jusqu’à la fin de la partie.',
+      'Elle peut récupérer la carte du joueur éliminé par le village et incarner ce rôle jusqu’à sa mort ou jusqu’à la fin de la partie.',
 
       'Elle gagne si tous les loups sont éliminés.'
 
@@ -729,7 +729,7 @@ export const ROLES: Role[] = [
 
     howToPlay: [
 
-      'La Servante doit lever sa carte avant que celle de la victime soit révélée.',
+      'Après le vote du village, la Servante doit se décider avant que la carte du joueur éliminé soit révélée.',
 
       'Si elle utilise son pouvoir, elle récupère la carte de la victime et devient ce rôle pour les prochaines nuits.',
 
