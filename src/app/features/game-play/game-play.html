@@ -1,0 +1,299 @@
+<div class="play-screen">
+  <header class="play-header">
+    <a routerLink="/role-summary" class="back-button" aria-label="Retour au résumé">←</a>
+    <h1>{{ phase() === 'sleep' ? '' : phase() === 'night' ? 'Nuit n°' + nightNumber() : phase() === 'morning' ? 'Jour n°' + nightNumber() : phase() === 'captain' ? 'Élection du capitaine' : phase() === 'vote' ? 'Vote du village' : phase() === 'captain-tiebreak' ? 'Égalité' : phase() === 'captain-successor' ? 'Succession' : phase() === 'hunter-shot' ? 'Dernière balle du Chasseur' : phase() === 'servante-choice' ? 'Choix de la Servante' : phase() === 'finished' ? 'Fin de la partie' : 'Résultat du vote' }}</h1>
+    <a routerLink="/role-library" class="library-button" aria-label="Ouvrir la bibliothèque des rôles">▤</a>
+  </header>
+
+  @if (phase() === 'sleep') {
+    <main class="sleep-screen">
+      <p>Le village</p>
+      <h2>s’endort</h2>
+      <span class="sleep-stars" aria-hidden="true">•••</span>
+      <button type="button" class="primary-button" (click)="startNight()">Commencer la nuit n°{{ nightNumber() }}</button>
+    </main>
+  }
+
+  @if (phase() === 'night') {
+    <main class="night-content">
+      <div class="section-title">
+        <h2>Rôles restants</h2>
+        <p>Appelle-les dans l’ordre indiqué.</p>
+      </div>
+      <div class="role-grid" aria-label="Rôles à appeler cette nuit">
+        @for (call of calls(); track call.id; let index = $index) {
+          <button type="button" class="role-tile" [class.called]="calledIds().includes(call.id)"
+            [disabled]="calledIds().includes(call.id)" (click)="openCall(call.id)">
+            <span class="order-badge">{{ index + 1 }}</span>
+            <img [src]="call.role.image" [alt]="call.label" />
+            <span>{{ call.label }}</span>
+          </button>
+        }
+      </div>
+      @if (otherRoles().length) {
+        <section class="other-roles">
+          <h2>Autres rôles à ne pas appeler cette nuit</h2>
+          <p>Ils auront un rôle à jouer plus tard…</p>
+          <div class="role-grid other-grid">
+            @for (entry of otherRoles(); track entry.name + entry.role.id) {
+              <article class="role-tile inactive">
+                <img [src]="entry.role.image" [alt]="entry.role.name" />
+                <span>{{ entry.name }}</span>
+              </article>
+            }
+          </div>
+        </section>
+      }
+    </main>
+    <footer class="play-footer">
+      <button type="button" class="primary-button" [disabled]="remainingCalls().length > 0" (click)="goToMorning()">
+        Le village se réveille <span aria-hidden="true">→</span>
+      </button>
+    </footer>
+  }
+
+  @if (phase() === 'morning') {
+    <main class="day-content">
+      <section class="info-card night-recap">
+        <h2>Résumé de la nuit précédente</h2>
+        @if (dayDeaths().length) {
+          <p>{{ dayDeaths().join(' et ') }} {{ dayDeaths().length > 1 ? 'ne sont pas revenus' : 'n’est pas revenu' }}.</p>
+        } @else {
+          <p>Personne n’est mort !</p>
+        }
+        @if (victimInfected()) { <p class="infected-note">La victime des loups a été infectée.</p> }
+      </section>
+      @if (infoMessage()) {
+        <section class="info-card"><h2>Infos MJ</h2><p>{{ infoMessage() }}</p></section>
+      }
+      @if (captainElectionMessage()) { <section class="info-card"><p>{{ captainElectionMessage() }}</p></section> }
+      @if (successionMessage()) { <section class="info-card"><p>{{ successionMessage() }}</p></section> }
+      <p class="day-instruction">{{ captain() ? 'Le capitaine est une charge confiée à un joueur. Son vote comptera double.' : 'Lance le débat. Le village peut élire un capitaine par vote.' }}</p>
+      <section class="day-roster">
+        <h2>Rappel des rôles</h2>
+        <div class="role-grid">
+          @for (player of assignments(); track player.cardIndex) {
+            <article class="role-tile" [class.dead]="!aliveNames().includes(player.name)">
+              <img [src]="player.role.image" [alt]="player.role.name" />
+              <span>{{ player.name }}</span>
+              @if (captain() === player.name && aliveNames().includes(player.name)) { <span class="captain-badge">Capitaine</span> }
+              @if (!aliveNames().includes(player.name)) { <span class="dead-mark">Éliminé</span> }
+            </article>
+          }
+        </div>
+      </section>
+    </main>
+    <footer class="play-footer">
+      @if (!captain()) {
+        <div class="footer-actions">
+          <button type="button" class="secondary-button" (click)="goToVillageVote()">Continuer sans capitaine</button>
+          <button type="button" class="primary-button" (click)="openCaptainVote()">Élire un capitaine <span aria-hidden="true">→</span></button>
+        </div>
+      } @else {
+        <button type="button" class="primary-button" (click)="goToVillageVote()">Passer au vote du village <span aria-hidden="true">→</span></button>
+      }
+    </footer>
+  }
+
+  @if (phase() === 'captain') {
+    <main class="vote-content">
+      <p>Le capitaine est une charge, pas une carte Personnage. Le village élit un joueur à la majorité relative. Chaque joueur vote une fois.</p>
+      <p class="ballot-progress">Bulletins saisis : {{ captainBallots() }} / {{ aliveNames().length }}</p>
+      @if (captainElectionMessage()) { <p class="vote-notice" role="status">{{ captainElectionMessage() }}</p> }
+      <div class="player-list">
+        @for (name of captainCandidates(); track name) {
+          <button type="button" [disabled]="captainBallots() >= aliveNames().length" (click)="recordCaptainVote(name)">{{ name }}<span>{{ captainVotes()[name] || 0 }} voix</span></button>
+        }
+      </div>
+    </main>
+    <footer class="play-footer vote-controls">
+      <button type="button" class="secondary-button" [disabled]="!captainVoteHistory().length" (click)="undoCaptainVote()">Annuler le dernier bulletin</button>
+      <button type="button" class="primary-button" [disabled]="captainBallots() !== aliveNames().length" (click)="finishCaptainElection()">Dépouiller le vote <span aria-hidden="true">→</span></button>
+    </footer>
+  }
+
+  @if (phase() === 'vote') {
+    <main class="vote-content">
+      <p>{{ villageRunoff() ? 'Égalité : nouveau vote entre les joueurs ex æquo.' : 'Les joueurs votent chacun leur tour. Le vote du capitaine vaut deux voix.' }}</p>
+      @if (currentVoter()) { <p class="ballot-progress">Vote du joueur : <strong>{{ currentVoter() }}</strong> ({{ villageBallots() + 1 }} / {{ aliveNames().length }}){{ captain() === currentVoter() ? ' — son vote comptera double' : '' }}</p> }
+      <div class="player-list">
+        @for (name of villageCandidates(); track name) {
+          <button type="button" [disabled]="!currentVoter()" (click)="recordVillageVote(name)">{{ name }}<span>{{ villageVotes()[name] || 0 }} voix</span></button>
+        }
+      </div>
+    </main>
+    <footer class="play-footer vote-controls">
+      <p class="vote-hint">{{ villageRunoff() ? 'En cas de nouvelle égalité, personne ne sera éliminé.' : 'Les votes sont pondérés automatiquement.' }}</p>
+      <button type="button" class="secondary-button" [disabled]="!villageVoteHistory().length" (click)="undoVillageVote()">Annuler le dernier bulletin</button>
+      <button type="button" class="primary-button" [disabled]="villageBallots() !== aliveNames().length" (click)="finishVillageVote()">Dépouiller le vote <span aria-hidden="true">→</span></button>
+    </footer>
+  }
+
+  @if (phase() === 'captain-tiebreak') {
+    <main class="vote-content">
+      <p>Égalité au vote du village. Le capitaine {{ captain() }} désigne la victime parmi les ex æquo.</p>
+      <div class="player-list">
+        @for (name of tiedCandidates(); track name) {
+          <button type="button" (click)="resolveCaptainTie(name)">{{ name }}</button>
+        }
+      </div>
+    </main>
+  }
+
+  @if (phase() === 'captain-successor') {
+    <main class="vote-content">
+      <h2>Succession du capitaine</h2>
+      <p>{{ successionMessage() }}</p>
+      <div class="player-list">
+        @for (name of aliveNames(); track name) {
+          <button type="button" (click)="chooseSuccessor(name)">{{ name }}</button>
+        }
+      </div>
+    </main>
+  }
+
+  @if (phase() === 'hunter-shot') {
+    <main class="vote-content">
+      <h2>{{ pendingHunter() }} était le Chasseur</h2>
+      <p>Il peut choisir un joueur vivant à éliminer avec sa dernière balle, quelle que soit la cause de sa mort.</p>
+      <div class="player-list">
+        @for (name of aliveNames(); track name) { <button type="button" (click)="shootWithHunter(name)">{{ name }}</button> }
+      </div>
+      <button type="button" class="secondary-button" (click)="shootWithHunter('')">Ne pas tirer</button>
+    </main>
+  }
+
+  @if (phase() === 'servante-choice') {
+    <main class="vote-content">
+      <h2>{{ pendingServante() }}, c’est à toi</h2>
+      <p>Avant que le rôle de {{ eliminatedPlayerName() }} soit révélé, la Servante peut prendre sa carte.</p>
+      <div class="witch-actions">
+        <button type="button" class="primary-button" (click)="takeServanteRole()">Prendre le rôle</button>
+        <button type="button" class="secondary-button" (click)="declineServanteRole()">Garder mon rôle</button>
+      </div>
+    </main>
+  }
+
+  @if (phase() === 'result') {
+    <main class="result-content">
+      <h2>{{ resultMessage() }}</h2>
+      @if (votedPlayer(); as player) {
+        <img [src]="player.role.image" [alt]="player.role.name" />
+        <p>{{ player.role.name }}</p>
+      }
+      <p>{{ aliveNames().length }} joueurs encore en vie.</p>
+      @if (canRequestSecondVote()) { <button type="button" class="secondary-button" (click)="startJudgeSecondVote()">Le Juge Bègue demande un second vote</button> }
+    </main>
+    <footer class="play-footer"><button type="button" class="primary-button" (click)="beginNextNight()">Commencer la nuit n°{{ nightNumber() + 1 }} <span aria-hidden="true">→</span></button></footer>
+  }
+
+  @if (phase() === 'finished') {
+    <main class="result-content game-over">
+      <h2>La partie est terminée</h2>
+      <p class="victory-message">{{ winnerMessage() }}</p>
+      <h3>Rôles de la partie</h3>
+      <div class="role-grid">
+        @for (player of assignments(); track player.cardIndex) {
+          <article class="role-tile" [class.dead]="!aliveNames().includes(player.name)">
+            <img [src]="roleFor(player.name).image" [alt]="roleFor(player.name).name" />
+            <span>{{ player.name }}</span><span>{{ roleFor(player.name).name }}</span>
+          </article>
+        }
+      </div>
+      <a routerLink="/game-setup" class="primary-button">Préparer une nouvelle partie</a>
+    </main>
+  }
+
+  @if (currentCall(); as call) {
+    <div class="modal-backdrop">
+      <section class="action-modal" role="dialog" aria-modal="true" [attr.aria-labelledby]="'call-title-' + call.id">
+        <h2 [id]="'call-title-' + call.id">{{ call.label }}{{ call.id === 'loups' ? ' se réveille' : ' est appelé' }}</h2>
+        <img [src]="call.role.image" [alt]="call.role.name" />
+        @if (call.id !== 'loups') { <p class="actor-name">{{ actorForCall(call) }}</p> }
+        <p>{{ call.prompt }}</p>
+
+        @if (call.action === 'dog-wolf') {
+          <div class="witch-actions">
+            <button type="button" [class.selected]="dogWolfChoice() === 'village'" (click)="chooseDogWolfCamp('village')">Rejoindre le village</button>
+            <button type="button" [class.selected]="dogWolfChoice() === 'loup'" (click)="chooseDogWolfCamp('loup')">Rejoindre les loups</button>
+          </div>
+          <button type="button" class="primary-button" [disabled]="!canConfirmCall()" (click)="confirmCall()">Confirmer le choix</button>
+        } @else if (call.action === 'judge') {
+          <label class="sign-entry">Signe secret du Juge Bègue
+            <input type="text" [value]="jesterSign()" (input)="setJesterSign($any($event.target).value)" placeholder="Ex. toucher son nez" />
+          </label>
+          <button type="button" class="primary-button" [disabled]="!canConfirmCall()" (click)="confirmCall()">Mémoriser le signe</button>
+        } @else if (call.action === 'sectarian') {
+          <p>Assigne chaque joueur à son groupe secret, puis confirme le groupe du Sectaire.</p>
+          <div class="sectarian-groups">
+            @for (player of assignments(); track player.name) {
+              <div><span>{{ player.name }}</span>
+                <button type="button" [class.selected]="villageGroups()[player.name] === 'A'" (click)="setVillageGroup(player.name, 'A')">A</button>
+                <button type="button" [class.selected]="villageGroups()[player.name] === 'B'" (click)="setVillageGroup(player.name, 'B')">B</button>
+              </div>
+            }
+          </div>
+          <button type="button" class="primary-button" [disabled]="!canConfirmCall()" (click)="confirmCall()">Confirmer les groupes</button>
+        } @else if (call.action === 'thief' || call.action === 'comedian') {
+          <p>{{ call.action === 'thief' ? 'Cartes de réserve' : 'Rôles de réserve disponibles' }}</p>
+          <div class="reserve-role-list">
+            @for (role of reserveCards(); track $index) {
+              @if (call.action === 'thief' || !comedianRolesUsed().includes(role.id)) {
+                <button type="button" [class.selected]="reserveSelection() === role.id" (click)="selectReserve(role.id)">
+                  <img [src]="role.image" [alt]="role.name" /><span>{{ role.name }}</span>
+                </button>
+              }
+            }
+          </div>
+          <button type="button" class="primary-button" [disabled]="!canConfirmCall()" (click)="confirmCall()">{{ call.action === 'thief' ? 'Choisir ce rôle' : 'Emprunter ce pouvoir' }}</button>
+        } @else if (call.action === 'witch') {
+          <p class="victim-call">La victime des loups est {{ nightVictim() ?? 'inconnue' }}.</p>
+          <div class="witch-actions">
+            @if (!witchHealUsed() && nightVictim()) { <button type="button" (click)="markVictimSaved()">Sauver {{ nightVictim() }}</button> }
+            @if (!witchPoisonUsed()) { <button type="button" (click)="enterWitchKillMode()">Utiliser la potion d’empoisonnement</button> }
+            <button type="button" (click)="doNothingAsWitch()">Terminer sans autre potion</button>
+          </div>
+          @if (witchKillMode()) {
+            <p>Choisis le joueur à empoisonner.</p>
+            <div class="target-list">
+              @for (name of targetNames(); track name) {
+                <button type="button" [class.selected]="selectedTargets().includes(name)" (click)="toggleTarget(name)">{{ name }}</button>
+              }
+            </div>
+            <button type="button" class="primary-button" [disabled]="!canConfirmCall()" (click)="confirmCall()">Confirmer la potion</button>
+          }
+        } @else if (call.action === 'infect' && nightVictim()) {
+          <p class="victim-call">La victime des loups est {{ nightVictim() }}.</p>
+          <div class="witch-actions">
+            <button type="button" (click)="infectVictim()">Infecter la victime</button>
+            <button type="button" (click)="confirmCall()">Ne pas infecter</button>
+          </div>
+        } @else {
+          @if (call.targets > 0) {
+            <p class="target-hint">{{ selectedTargets().length }} / {{ call.targets }} joueur(s) choisi(s)</p>
+            <div class="target-list">
+              @for (name of targetNames(); track name) {
+                <button type="button" [class.selected]="selectedTargets().includes(name)" (click)="toggleTarget(name)">{{ name }}</button>
+              }
+            </div>
+          }
+          @if (call.action === 'seer' && selectedTargets().length && !revealedPlayerRole()) {
+            <button type="button" class="primary-button" (click)="showSelectedRole()">Dévoiler le rôle</button>
+          }
+          <button type="button" class="primary-button" [disabled]="!canConfirmCall() || (call.action === 'seer' && !roleHasBeenRevealed())" (click)="confirmCall()">Passer au rôle suivant</button>
+        }
+      </section>
+    </div>
+  }
+
+  @if (revealedPlayerRole(); as revealed) {
+    <div class="private-role-backdrop">
+      <section class="private-role-screen" role="dialog" aria-modal="true" [attr.aria-label]="revealed.name + ' est ' + revealed.role.name">
+        <button type="button" class="hide-role-button" aria-label="Masquer le rôle et revenir au Maître du Jeu" (click)="revealedPlayerRole.set(null)">×</button>
+        <p>{{ revealed.name }} est</p>
+        <img [src]="revealed.role.image" [alt]="revealed.role.name" />
+        <h1>{{ revealed.role.name }}</h1>
+      </section>
+    </div>
+  }
+</div>

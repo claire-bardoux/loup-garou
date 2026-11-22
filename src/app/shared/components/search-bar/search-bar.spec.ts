@@ -20,4 +20,12 @@ describe('SearchBar', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('met à jour le signal et émet la nouvelle recherche', () => {
+    const values: string[] = [];
+    component.searchChange.subscribe((value) => values.push(value));
+    component.onSearchChange('voyante');
+    expect(component.search()).toBe('voyante');
+    expect(values).toEqual(['voyante']);
+  });
 });

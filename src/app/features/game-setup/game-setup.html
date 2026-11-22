@@ -1,0 +1,87 @@
+<div class="setup-screen">
+  <header class="setup-header">
+    <a class="back-button" routerLink="/" aria-label="Retour à l’accueil">←</a>
+    <h1>Paramétrage</h1>
+    <a class="library-button" routerLink="/role-library" [queryParams]="{ from: 'game-setup' }" aria-label="Ouvrir la bibliothèque des rôles">
+      <span aria-hidden="true">▤</span>
+    </a>
+  </header>
+
+  <section class="player-picker" aria-labelledby="player-heading">
+    <h2 id="player-heading">Nombre de joueurs</h2>
+    <div class="counter">
+      <button type="button" (click)="decreasePlayers()" [disabled]="playerCount() <= minPlayers" aria-label="Retirer un joueur">−</button>
+      <output aria-live="polite" aria-labelledby="player-heading">{{ playerCount() }}</output>
+      <button type="button" (click)="increasePlayers()" [disabled]="playerCount() >= maxPlayers" aria-label="Ajouter un joueur">+</button>
+    </div>
+    <p class="player-hint">De {{ minPlayers }} à {{ maxPlayers }} joueurs</p>
+  </section>
+
+  <section class="suggestion" aria-labelledby="suggestion-heading">
+    <div class="suggestion-copy">
+      <div class="suggestion-title-row">
+        <div>
+          <h2 id="suggestion-heading">Composition proposée</h2>
+          <p>Pour {{ playerCount() }} joueurs.</p>
+        </div>
+        <label class="style-picker">
+          <span>Niveau de jeu</span>
+          <select [value]="style()" (change)="setStyle($any($event.target).value)">
+            <option value="decouverte">Découverte</option>
+            <option value="equilibree">Équilibrée</option>
+            <option value="experte">Experte</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="role-grid" aria-label="Rôles proposés">
+      @for (entry of roleCounts(); track entry.role.id) {
+        <article class="role-tile" [attr.aria-label]="entry.role.name + (entry.count > 1 ? ', ' + entry.count + ' exemplaires' : '')">
+          <img [src]="entry.role.image" [alt]="entry.role.name" />
+          @if (entry.count > 1) {
+            <span class="role-count">{{ entry.count }}</span>
+          }
+          <span class="role-name">{{ entry.role.name }}</span>
+        </article>
+      }
+    </div>
+
+    @if (reserveCards().length > 0) {
+      <p class="reserve-note"><strong>À mettre de côté :</strong> {{ reserveCards().length }} carte(s) de rôle en plus, hors distribution.</p>
+    }
+
+    @if (compositionNotes().length > 0) {
+      <ul class="composition-notes">
+        @for (note of compositionNotes(); track note) {
+          <li>{{ note }}</li>
+        }
+      </ul>
+    }
+
+    <div class="suggestion-actions">
+      <button type="button" class="regenerate-button" (click)="generateComposition()">
+        <span aria-hidden="true">⟳</span> Nouvelle proposition
+      </button>
+      <a class="choose-button" routerLink="/role-summary" (click)="chooseComposition()">
+        {{ compositionChosen() ? 'Composition choisie ✓' : 'Choisir cette composition' }}
+        <span aria-hidden="true">→</span>
+      </a>
+    </div>
+    @if (compositionChosen()) {
+      <p class="chosen-message" role="status">Composition sélectionnée pour {{ playerCount() }} joueurs.</p>
+    }
+  </section>
+
+  @if (compositionChosen()) {
+    <a class="manual-button" routerLink="/role-summary" (click)="chooseComposition()">
+      <span>Continuer avec cette composition</span>
+      <span aria-hidden="true">→</span>
+    </a>
+  } @else {
+    <a class="manual-button" routerLink="/role-library" [queryParams]="{ from: 'game-setup' }">
+      <span>Créer ma composition</span>
+      <span aria-hidden="true">→</span>
+    </a>
+  }
+</div>

@@ -14,10 +14,16 @@ describe('FilterButtons', () => {
 
     fixture = TestBed.createComponent(FilterButtons);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('filters', [{ label: 'Tous', value: 'tous' }]);
+    fixture.componentRef.setInput('selectedFilter', 'tous');
     await fixture.whenStable();
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
+    const emitted: string[] = [];
+    component.filterChange.subscribe((value) => emitted.push(value));
+    component.selectFilter('loup');
+    expect(emitted).toEqual(['loup']);
   });
 });

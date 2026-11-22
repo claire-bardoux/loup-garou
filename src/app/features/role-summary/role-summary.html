@@ -1,0 +1,124 @@
+<div class="summary-screen">
+  <header class="summary-header">
+    <a routerLink="/game-setup" class="back-button" aria-label="Retour au paramétrage">←</a>
+    <h1>Résumé</h1>
+    <a routerLink="/role-library" class="library-button" aria-label="Ouvrir la bibliothèque des rôles">
+      <span aria-hidden="true">▤</span>
+    </a>
+  </header>
+
+  @if (!distributionStarted()) {
+    <div class="player-total">{{ playerCount() }} joueurs</div>
+  } @else {
+    <section class="distribution" aria-live="polite">
+      <h2>Joueur n°{{ nextPlayerNumber() }}, choisis ta carte !</h2>
+      <p>Le téléphone passe entre les mains des joueurs. Choisis une carte pour découvrir ton rôle.</p>
+      @if (!distributionComplete()) {
+        <div class="card-grid" aria-label="Cartes disponibles">
+          @for (card of cards(); track card.index) {
+            <button type="button" class="hidden-card" (click)="chooseCard(card.index)"
+              [attr.aria-label]="'Choisir une carte, numéro ' + (card.index + 1)">
+              <span aria-hidden="true">✦</span>
+            </button>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  <main class="team-list">
+    @for (team of sections(); track team.key) {
+      <section [class]="'team-section team-' + team.key" [attr.aria-labelledby]="'team-' + team.key">
+        <header class="team-heading">
+          <h2 [id]="'team-' + team.key">{{ team.label }}</h2>
+          <div class="team-totals" aria-label="Nombre de rôles et de joueurs">
+            <span>{{ team.uniqueRoles }} {{ team.uniqueRoles > 1 ? 'rôles' : 'rôle' }}</span>
+            <span>{{ team.players }} {{ team.players > 1 ? 'joueurs' : 'joueur' }}</span>
+          </div>
+        </header>
+
+        <div class="role-grid">
+          @for (entry of team.roleCounts; track entry.role.id) {
+            <article class="role-card" [attr.aria-label]="entry.role.name + (entry.count > 1 ? ', ' + entry.count + ' joueurs' : '')">
+              <div class="role-image">
+                <img [src]="entry.role.image" [alt]="entry.role.name" />
+              </div>
+              <p>{{ entry.role.name }}</p>
+              @if (entry.count > 1) {
+                <span class="role-count" [attr.aria-label]="entry.count + ' joueurs avec ce rôle'">{{ entry.count }}</span>
+              }
+            </article>
+          }
+        </div>
+      </section>
+    }
+  </main>
+
+  <footer class="summary-footer">
+    @if (!distributionStarted()) {
+      <button type="button" class="next-button" (click)="continue()">
+        <span>Suivant</span>
+        <span aria-hidden="true">→</span>
+      </button>
+    }
+  </footer>
+
+  @if (selectedCard() !== null) {
+    <div class="modal-backdrop" role="presentation">
+      <section class="name-modal" role="dialog" aria-modal="true" aria-labelledby="new-player-title">
+        <h2 id="new-player-title">Nouveau joueur</h2>
+        <label for="player-name">Nom du joueur</label>
+        <input id="player-name" type="text" placeholder="Nom du joueur" [value]="playerName()"
+          (input)="playerName.set($any($event.target).value)" (keydown.enter)="revealRole()" autofocus />
+        <button type="button" class="reveal-button" (click)="revealRole()" [disabled]="!playerName().trim()">Découvrir le rôle</button>
+      </section>
+    </div>
+  }
+
+  @if (revealedAssignment(); as assignment) {
+    <div class="modal-backdrop" role="presentation">
+      <section class="reveal-modal" role="dialog" aria-modal="true" aria-labelledby="role-reveal-title">
+        <button class="close-reveal" type="button" aria-label="Fermer" (click)="closeReveal()">×</button>
+        <h2 id="role-reveal-title">{{ assignment.name }}, tu es</h2>
+        <img [src]="assignment.role.image" [alt]="assignment.role.name" />
+        <h3>{{ assignment.role.name }}</h3>
+        <p>{{ assignment.role.description[0] }}</p>
+        <span class="team-label">{{ assignment.role.team }}</span>
+        <button type="button" class="reveal-button" (click)="closeReveal()">
+          {{ distributionComplete() ? 'Terminer' : 'Passer au joueur suivant' }}
+        </button>
+      </section>
+    </div>
+  }
+
+  @if (distributionComplete() && !showPlayerRoles()) {
+    <div class="modal-backdrop completion-backdrop" role="presentation">
+      <section class="completion-modal" role="dialog" aria-modal="true" aria-labelledby="completion-title">
+        <p>Tous les rôles ont été attribués !</p>
+        <h2 id="completion-title">La partie va commencer</h2>
+        <p>Rends le téléphone au Maître du Jeu.</p>
+        <button type="button" class="modal-secondary" (click)="openPlayerRoles()">Voir la liste des rôles par joueur</button>
+        <button type="button" class="reveal-button" (click)="startGame()">Démarrer la partie</button>
+      </section>
+    </div>
+  }
+
+  @if (showPlayerRoles()) {
+    <div class="modal-backdrop player-roles-backdrop" role="presentation">
+      <section class="completion-modal role-list-modal" role="dialog" aria-modal="true" aria-labelledby="player-roles-title">
+        <button type="button" class="close-reveal" aria-label="Fermer" (click)="closePlayerRoles()">×</button>
+        <h2 id="player-roles-title">Rôles par joueur</h2>
+        <ol>
+          @for (assignment of assignments(); track assignment.cardIndex) {
+            <li>
+              <img [src]="assignment.role.image" [alt]="'Carte ' + assignment.role.name" />
+              <span>{{ assignment.name }}</span>
+              <strong>{{ assignment.role.name }}</strong>
+            </li>
+          }
+        </ol>
+        <button type="button" class="reveal-button" (click)="closePlayerRoles()">Retour</button>
+      </section>
+    </div>
+  }
+</div>

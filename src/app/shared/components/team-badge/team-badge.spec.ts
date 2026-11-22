@@ -14,10 +14,12 @@ describe('TeamBadge', () => {
 
     fixture = TestBed.createComponent(TeamBadge);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('team', 'solitaire');
     await fixture.whenStable();
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('SOLITAIRE');
   });
 });
