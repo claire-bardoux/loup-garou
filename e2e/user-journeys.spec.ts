@@ -41,5 +41,17 @@ test('la page reste dans la largeur sur mobile', async ({ page }) => {
       content: document.documentElement.scrollWidth,
     }));
     expect(dimensions.content, `débordement horizontal sur ${route}`).toBeLessThanOrEqual(dimensions.viewport);
+    if (route === '/') {
+      const title = await page.getByRole('heading', { name: 'Le Grimoire' }).boundingBox();
+      const button = await page.getByRole('link', { name: 'Créer une partie' }).boundingBox();
+      const library = await page.getByRole('link', { name: 'Ouvrir la bibliothèque des rôles' }).boundingBox();
+      expect(title).not.toBeNull();
+      expect(button).not.toBeNull();
+      expect(library).not.toBeNull();
+      expect(title!.height).toBeLessThanOrEqual(110);
+      expect(button!.height).toBeLessThanOrEqual(64);
+      expect(library!.height).toBeLessThanOrEqual(52);
+      expect(button!.y - (title!.y + title!.height)).toBeGreaterThanOrEqual(40);
+    }
   }
 });
