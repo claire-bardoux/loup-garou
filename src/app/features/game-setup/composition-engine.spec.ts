@@ -18,6 +18,7 @@ describe('composeGame', () => {
       for (let players = 5; players <= 24; players += 1) {
         const result = composeGame(players, style, constantRandom());
         expect(result.roles).toHaveLength(players);
+        expect(result.roles.some((role) => role.id === 'capitaine')).toBe(false);
         expect(result.wolfCount).toBe(classicWolfCount(players));
         expect(result.roles.filter((role) => role.team === 'loup' || role.id === 'loup-garou-blanc').length)
           .toBe(result.wolfCount);

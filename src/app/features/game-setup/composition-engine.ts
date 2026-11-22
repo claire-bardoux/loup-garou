@@ -23,7 +23,6 @@ const ROLE_PROFILES: Record<string, RoleProfile> = {
   'sorciere': { players: 8, power: 3, group: 'elimination', styles: ['equilibree', 'experte'] },
   'chasseur': { players: 8, power: 2, group: 'elimination', styles: ['equilibree', 'experte'] },
   'petite-fille': { players: 9, power: 1, group: 'information', styles: ['equilibree', 'experte'] },
-  'capitaine': { players: 8, power: 1, group: 'vote', styles: ['equilibree', 'experte'] },
   'villageois-villageois': { players: 9, power: 1, group: 'bond', styles: ['equilibree', 'experte'] },
   'deux-soeurs': { players: 10, power: 1, group: 'bond', styles: ['equilibree', 'experte'] },
   'trois-freres': { players: 12, power: 1, group: 'bond', styles: ['equilibree', 'experte'] },
