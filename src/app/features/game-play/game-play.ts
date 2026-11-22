@@ -268,7 +268,6 @@ export class GamePlay {
     if (call.action === 'sectarian' && actorName) this.sectarianGroup.set(this.villageGroups()[actorName] ?? null);
     if (call.action === 'infect' && this.victimInfected()) {
       this.infectionUsed.set(true);
-      this.infectedNames.set(this.nightVictim() ? [this.nightVictim()!] : []);
     }
     if (call.action === 'witch' && this.witchKillMode()) {
       this.poisonedPlayer.set(this.selectedTargets()[0] ?? null);
