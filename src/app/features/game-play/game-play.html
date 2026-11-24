@@ -264,9 +264,9 @@
             <button type="button" class="primary-button" (click)="confirmCall()">Passer au rôle suivant</button>
           }
         } @else if (call.action === 'witch') {
-          <p class="victim-call">La victime des loups est {{ nightVictim() ?? 'inconnue' }}.</p>
+          <p class="victim-call">La victime des loups est {{ nightVictim() ?? 'inconnue' }}{{ victimInfected() ? ' et a été infectée.' : '.' }}</p>
           <div class="witch-actions">
-            @if (!witchHealUsed() && nightVictim()) { <button type="button" (click)="markVictimSaved()">Sauver {{ nightVictim() }}</button> }
+            @if (!witchHealUsed() && nightVictim()) { <button type="button" (click)="markVictimSaved()">{{ victimInfected() ? 'Soigner' : 'Sauver' }} {{ nightVictim() }}</button> }
             @if (!witchPoisonUsed()) { <button type="button" (click)="enterWitchKillMode()">Utiliser la potion d’empoisonnement</button> }
             <button type="button" (click)="doNothingAsWitch()">Terminer sans autre potion</button>
           </div>

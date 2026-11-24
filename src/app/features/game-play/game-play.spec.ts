@@ -214,7 +214,7 @@ describe('GamePlay', () => {
     expect(game.foxPowerLost()).toBe(expectedResult === 'perd son pouvoir');
   });
 
-  it('appelle la Sorcière avant l’Infect Père et empêche l’infection si elle sauve la victime', async () => {
+  it('appelle l’Infect Père avant la Sorcière et permet de soigner la victime infectée', async () => {
     await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
     const session = TestBed.inject(GameSession);
     const infectFather = ROLES.find((role) => role.id === 'infect-pere-des-loups')!;
@@ -234,19 +234,22 @@ describe('GamePlay', () => {
     game.confirmCall();
 
     const calls = game.calls().map((call) => call.id);
-    expect(calls.indexOf('sorciere')).toBeGreaterThan(calls.indexOf('loups'));
-    expect(calls.indexOf('sorciere')).toBeLessThan(calls.indexOf('infect-pere-des-loups'));
+    expect(calls.indexOf('loups')).toBeLessThan(calls.indexOf('infect-pere-des-loups'));
+    expect(calls.indexOf('infect-pere-des-loups')).toBeLessThan(calls.indexOf('sorciere'));
+
+    game.openCall('infect-pere-des-loups');
+    game.infectVictim();
+    expect(game.victimInfected()).toBe(true);
 
     game.openCall('sorciere');
     game.markVictimSaved();
-    game.confirmCall();
+    game.doNothingAsWitch();
 
-    expect(game.calls().some((call) => call.id === 'infect-pere-des-loups')).toBe(false);
-    expect(game.infectionUsed()).toBe(false);
     game.calledIds.set(game.calls().map((call) => call.id));
     game.goToMorning();
     expect(game.aliveNames()).toContain('Joueur 5');
     expect(game.roleFor('Joueur 5').id).toBe('simple-villageois');
+    expect(game.dayDeaths()).not.toContain('Joueur 5');
   });
 
   it('garde en vie la victime infectée et la fait rejoindre les loups les nuits suivantes', async () => {

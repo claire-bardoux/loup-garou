@@ -140,12 +140,12 @@ export class GamePlay {
         : 'Réveille les loups. Ils choisissent ensemble un joueur à éliminer.';
       calls.push({ id: 'loups', label: 'Les Loups', role: wolves, prompt, targets: 1, action: 'wolves' });
     }
-    if (!this.witchHealUsed() || !this.witchPoisonUsed()) add('sorciere', 'witch', 'Présente à la Sorcière la victime des loups. Chaque potion ne peut être utilisée qu’une fois.');
     if (this.nightNumber() % 2 === 0) add('loup-garou-blanc', 'white-wolf', 'Le Loup-Garou Blanc peut éliminer un autre loup cette nuit.', 1);
     if (actor('grand-mechant-loup') && players.filter((player) => this.aliveNames().includes(player.name) && this.roleFor(player.name).team === 'loup').length > 1) {
       add('grand-mechant-loup', 'grand-wolf', 'Tant qu’aucun autre loup n’est mort, le Grand Méchant Loup peut choisir une victime supplémentaire.', 1);
     }
     if (this.nightVictim() && !this.savedVictim() && !this.infectionUsed() && !this.victimInfected()) add('infect-pere-des-loups', 'infect', 'Le Père des Loups peut infecter la victime des loups au lieu de la laisser mourir.');
+    if (!this.witchHealUsed() || !this.witchPoisonUsed()) add('sorciere', 'witch', 'Présente à la Sorcière la victime des loups. Chaque potion ne peut être utilisée qu’une fois.');
     if (!this.foxPowerLost()) add('renard', 'fox', 'Demande au Renard de désigner trois joueurs. Dis-lui si au moins un loup se trouve parmi eux.', 3);
     return calls;
   });
@@ -335,7 +335,7 @@ export class GamePlay {
 
   goToMorning(): void {
     if (this.remainingCalls().length) return;
-    if (this.victimInfected() && this.nightVictim()) {
+    if (this.victimInfected() && !this.savedVictim() && this.nightVictim()) {
       this.roleOverrides.update((overrides) => ({ ...overrides, [this.nightVictim()!]: BASIC_WOLF }));
     }
     this.resolveDeaths(this.dayDeaths(), 'night', 'morning');
