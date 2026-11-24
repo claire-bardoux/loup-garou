@@ -227,7 +227,7 @@
   @if (currentCall(); as call) {
     <div class="modal-backdrop">
       <section class="action-modal" role="dialog" aria-modal="true" [attr.aria-labelledby]="'call-title-' + call.id">
-        <h2 [id]="'call-title-' + call.id">{{ call.label }}{{ call.id === 'loups' ? ' se réveille' : ' est appelé' }}</h2>
+        <h2 [id]="'call-title-' + call.id">{{ call.label }}{{ call.id === 'loups' ? ' se réveillent' : ' est appelé' }}</h2>
         <button type="button" class="secondary-button" (click)="openRoleRoster()">Voir les rôles de la partie</button>
         <img [src]="call.role.image" [alt]="call.role.name" />
         @if (call.id !== 'loups') { <p class="actor-name">{{ actorForCall(call) }}</p> }

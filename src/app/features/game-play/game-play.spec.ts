@@ -6,7 +6,7 @@ import { GameSession } from '../game-setup/game-session';
 import { GamePlay } from './game-play';
 
 describe('GamePlay', () => {
-  function createGame(roleIds: string[], reserveRoleIds: string[] = []): GamePlay {
+  function createGameFixture(roleIds: string[], reserveRoleIds: string[] = []) {
     const session = TestBed.inject(GameSession);
     const assignments = roleIds.map((id, cardIndex) => ({
       name: `Joueur ${cardIndex + 1}`,
@@ -15,9 +15,13 @@ describe('GamePlay', () => {
     }));
     session.setDraft(assignments.length, assignments.map(({ role }) => role), reserveRoleIds.map((id) => ROLES.find((role) => role.id === id)!));
     session.setPlayerAssignments(assignments);
-    const game = TestBed.createComponent(GamePlay).componentInstance;
-    game.nightNumber.set(2);
-    return game;
+    const fixture = TestBed.createComponent(GamePlay);
+    fixture.componentInstance.nightNumber.set(2);
+    return fixture;
+  }
+
+  function createGame(roleIds: string[], reserveRoleIds: string[] = []): GamePlay {
+    return createGameFixture(roleIds, reserveRoleIds).componentInstance;
   }
 
   function voteFor(game: GamePlay, target: string): void {
@@ -25,6 +29,20 @@ describe('GamePlay', () => {
     for (let ballot = 0; ballot < game.aliveNames().length; ballot++) game.recordVillageVote(target);
     game.finishVillageVote();
   }
+
+  it('affiche le titre au pluriel et la carte du loup-garou pour l’appel collectif', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const fixture = createGameFixture(['loup-garou-blanc', 'simple-villageois', 'loup-garou']);
+    const game = fixture.componentInstance;
+
+    game.openCall('loups');
+    fixture.detectChanges();
+
+    const dialog = (fixture.nativeElement as HTMLElement).querySelector('[aria-labelledby="call-title-loups"]');
+    expect(dialog?.querySelector('h2')?.textContent).toBe('Les loups se réveillent');
+    expect(dialog?.querySelector('img')?.getAttribute('src')).toBe(ROLES.find(({ id }) => id === 'loup-garou')!.image);
+    expect(game.calls().find(({ id }) => id === 'loup-garou-blanc')?.role.id).toBe('loup-garou-blanc');
+  });
 
   it('propose à la Servante le rôle de la personne éliminée par le village avant son élimination', async () => {
     await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();

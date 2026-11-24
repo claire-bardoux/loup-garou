@@ -141,13 +141,13 @@ export class GamePlay {
     }
     add('voyante', 'seer', 'Demande à la Voyante de désigner un joueur dont elle veut connaître le rôle.', 1);
     if (!this.foxPowerLost()) add('renard', 'fox', 'Le Renard peut désigner le joueur central d’un groupe de trois joueurs voisins. Les joueurs éliminés ne sont pas comptés.', 1);
-    const wolves = players.find((player) => this.aliveNames().includes(player.name) && !this.infectedDeathsTonight().includes(player.name) && this.isWolfAligned(player.name))?.role;
-    if (wolves) {
+    const hasLivingWolf = players.some((player) => this.aliveNames().includes(player.name) && !this.infectedDeathsTonight().includes(player.name) && this.isWolfAligned(player.name));
+    if (hasLivingWolf) {
       const littleGirlAlive = players.some((player) => this.aliveNames().includes(player.name) && this.roleFor(player.name).id === 'petite-fille');
       const prompt = littleGirlAlive
         ? 'Réveille les loups. La Petite Fille peut tenter de les observer pendant leur choix. Ils choisissent ensemble un joueur à éliminer.'
         : 'Réveille les loups. Ils choisissent ensemble un joueur à éliminer.';
-      calls.push({ id: 'loups', label: 'Les Loups', role: wolves, prompt, targets: 1, action: 'wolves' });
+      calls.push({ id: 'loups', label: 'Les loups', role: BASIC_WOLF, prompt, targets: 1, action: 'wolves' });
     }
     if (this.nightNumber() % 2 === 0) add('loup-garou-blanc', 'white-wolf', 'Le Loup-Garou Blanc peut éliminer le joueur vivant de son choix cette nuit.', 1);
     if (actor('grand-mechant-loup') && players.filter((player) => this.aliveNames().includes(player.name) && this.isWolfAligned(player.name)).length > 1) {
