@@ -73,10 +73,19 @@ export class RoleLibrary {
     return this.selectedRoles()[roleId] ?? 0;
   }
 
+  roleCardCount(roleId: string): number {
+    if (roleId === 'deux-soeurs') return 2;
+    if (roleId === 'trois-freres') return 3;
+    return 1;
+  }
+
   adjustRole(roleId: string, delta: number): void {
     const current = this.roleCount(roleId);
-    if (delta > 0 && this.remainingRoles() <= 0) return;
-    const next = Math.max(0, current + delta);
+    const cards = this.roleCardCount(roleId);
+    const adjustment = delta * cards;
+    if (adjustment > 0 && this.remainingRoles() < adjustment) return;
+    if (adjustment < 0 && current < -adjustment) return;
+    const next = Math.max(0, current + adjustment);
     this.selectedRoles.update((roles) => {
       const updated = { ...roles };
       if (next === 0) delete updated[roleId];

@@ -74,7 +74,10 @@ test('une composition manuelle de 16 joueurs affiche toutes les cartes après Su
 
   await expect(page.getByRole('heading', { name: 'Joueur n°1, choisis ta carte !' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Choisir une carte, numéro/ })).toHaveCount(16);
-  await expect(page.getByRole('button', { name: 'Choisir une carte, numéro 1', exact: true })).toBeInViewport();
+  const firstCard = page.getByRole('button', { name: 'Choisir une carte, numéro 1', exact: true });
+  await expect(firstCard).toBeInViewport();
+  await firstCard.click();
+  await expect(page.getByRole('dialog', { name: 'Nouveau joueur' })).toBeVisible();
 });
 
 test('la page reste dans la largeur sur mobile', async ({ page }) => {

@@ -61,6 +61,23 @@ describe('RoleLibrary', () => {
     expect(component.selectedRoleCount()).toBe(0);
   });
 
+  it('compte les Deux Sœurs comme deux cartes et deux joueurs dans la composition manuelle', () => {
+    component.session.playerCount.set(2);
+    const sisters = ROLES.find((role) => role.id === 'deux-soeurs')!;
+
+    component.adjustRole(sisters.id, 1);
+
+    expect(component.roleCount(sisters.id)).toBe(2);
+    expect(component.selectedRoleCount()).toBe(2);
+    expect(component.remainingRoles()).toBe(0);
+    component.adjustRole(sisters.id, 1);
+    expect(component.roleCount(sisters.id)).toBe(2);
+
+    component.adjustRole(sisters.id, -1);
+    expect(component.roleCount(sisters.id)).toBe(0);
+    expect(component.selectedRoleCount()).toBe(0);
+  });
+
   it('enregistre la composition complète et ouvre le résumé', () => {
     component.session.playerCount.set(2);
     const router = TestBed.inject(Router);

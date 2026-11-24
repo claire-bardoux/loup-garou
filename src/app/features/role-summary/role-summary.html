@@ -26,6 +26,7 @@
     </section>
   }
 
+  @if (!distributionStarted()) {
   <main class="team-list">
     @for (team of sections(); track team.key) {
       <section [class]="'team-section team-' + team.key" [attr.aria-labelledby]="'team-' + team.key">
@@ -53,6 +54,7 @@
       </section>
     }
   </main>
+  }
 
   <footer class="summary-footer">
     @if (!distributionStarted()) {

@@ -39,9 +39,11 @@
       />
       @if (cameFromGameSetup) {
         <div class="role-picker" [attr.aria-label]="'Quantité de ' + role.name">
-          <button type="button" (click)="adjustRole(role.id, -1)" [disabled]="roleCount(role.id) === 0" [attr.aria-label]="'Retirer un ' + role.name">−</button>
-          <output>{{ roleCount(role.id) }}</output>
-          <button type="button" (click)="adjustRole(role.id, 1)" [disabled]="remainingRoles() === 0" [attr.aria-label]="'Ajouter un ' + role.name">+</button>
+          <button type="button" (click)="adjustRole(role.id, -1)" [disabled]="roleCount(role.id) < roleCardCount(role.id)"
+            [attr.aria-label]="roleCardCount(role.id) > 1 ? 'Retirer ' + roleCardCount(role.id) + ' cartes ' + role.name : 'Retirer un ' + role.name">−</button>
+          <output [attr.aria-label]="roleCount(role.id) + ' carte(s) de ' + role.name">{{ roleCount(role.id) }}</output>
+          <button type="button" (click)="adjustRole(role.id, 1)" [disabled]="remainingRoles() < roleCardCount(role.id)"
+            [attr.aria-label]="roleCardCount(role.id) > 1 ? 'Ajouter ' + roleCardCount(role.id) + ' cartes ' + role.name : 'Ajouter un ' + role.name">+</button>
         </div>
       }
 
