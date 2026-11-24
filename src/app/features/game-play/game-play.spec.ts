@@ -112,6 +112,35 @@ describe('GamePlay', () => {
     expect(game.winnerMessage()).toContain('L’Ange remporte la partie');
   });
 
+  it('fait gagner l’Ange si les loups le tuent lors du premier tour avec des morts', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const game = createGame(['ange', 'loup-garou', 'loup-garou', ...Array(5).fill('simple-villageois')]);
+    game.nightNumber.set(2);
+    game.startNight();
+    game.openCall('loups');
+    game.toggleTarget('Joueur 1');
+    game.confirmCall();
+    game.calledIds.set(game.calls().map((call) => call.id));
+    game.goToMorning();
+
+    expect(game.phase()).toBe('finished');
+    expect(game.winnerMessage()).toContain('L’Ange remporte la partie');
+  });
+
+  it('déclenche le tir du Chasseur lorsqu’il est tué par les Loups-Garous', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const game = createGame(['chasseur', 'loup-garou', 'loup-garou', ...Array(5).fill('simple-villageois')]);
+    game.startNight();
+    game.openCall('loups');
+    game.toggleTarget('Joueur 1');
+    game.confirmCall();
+    game.calledIds.set(game.calls().map((call) => call.id));
+    game.goToMorning();
+
+    expect(game.phase()).toBe('hunter-shot');
+    expect(game.pendingHunter()).toBe('Joueur 1');
+  });
+
   it('permet au MJ d’ouvrir le récapitulatif des rôles pendant un appel nocturne', async () => {
     await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
     const session = TestBed.inject(GameSession);
@@ -271,6 +300,8 @@ describe('GamePlay', () => {
     game.startNight();
     game.openCall('renard');
     game.toggleTarget(center);
+    const foxNeighbors = center === 'Joueur 2' ? ['Joueur 1', 'Joueur 3'] : ['Joueur 7', 'Joueur 1'];
+    foxNeighbors.forEach((name) => game.toggleFoxNeighbor(name));
     fixture.detectChanges();
 
     const revealButton = [...fixture.nativeElement.querySelectorAll('button')]
@@ -293,17 +324,34 @@ describe('GamePlay', () => {
     expect(game.roleFor('Joueur 1').id).toBe('renard');
   });
 
-  it('analyse le groupe de voisins vivants et reconnaît le Loup-Garou Blanc', async () => {
+  it('utilise les voisins indiqués par le MJ et reconnaît le Loup-Garou Blanc', async () => {
     await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
     const game = createGame(['renard', 'simple-villageois', 'simple-villageois', 'loup-garou-blanc', 'simple-villageois', 'simple-villageois']);
     game.aliveNames.set(game.aliveNames().filter((name) => name !== 'Joueur 3'));
     game.startNight();
     game.openCall('renard');
     game.toggleTarget('Joueur 2');
+    game.toggleFoxNeighbor('Joueur 1');
+    game.toggleFoxNeighbor('Joueur 4');
 
     expect(game.foxGroupNames()).toEqual(['Joueur 1', 'Joueur 2', 'Joueur 4']);
     game.revealFoxResult();
     expect(game.foxFoundWolf()).toBe(true);
+  });
+
+  it('permet au Loup-Garou Blanc de viser n’importe quel joueur vivant sauf lui-même', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const game = createGame(['loup-garou-blanc', 'loup-garou', 'simple-villageois', 'simple-villageois']);
+    game.startNight();
+    game.openCall('loup-garou-blanc');
+
+    expect(game.targetNames()).toContain('Joueur 2');
+    expect(game.targetNames()).toContain('Joueur 3');
+    expect(game.targetNames()).not.toContain('Joueur 1');
+
+    game.toggleTarget('Joueur 3');
+    game.confirmCall();
+    expect(game.wolfVictims()).toContain('Joueur 3');
   });
 
   it('détecte un joueur devenu loup par changement de camp', async () => {
@@ -313,6 +361,8 @@ describe('GamePlay', () => {
     game.startNight();
     game.openCall('renard');
     game.toggleTarget('Joueur 2');
+    game.toggleFoxNeighbor('Joueur 1');
+    game.toggleFoxNeighbor('Joueur 3');
     game.revealFoxResult();
 
     expect(game.foxGroupNames()).toEqual(['Joueur 1', 'Joueur 2', 'Joueur 3']);
@@ -401,15 +451,87 @@ describe('GamePlay', () => {
 
     expect(game.aliveNames()).toContain('Joueur 3');
     expect(game.roleFor('Joueur 3').id).toBe('loup-garou');
+    expect(game.wolfAlignedNames()).toContain('Joueur 3');
     expect(game.dayDeaths()).not.toContain('Joueur 3');
 
     game.beginNextNight();
     game.startNight();
     expect(game.infectedDeathsTonight()).not.toContain('Joueur 3');
     expect(game.calls().some((call) => call.id === 'loups')).toBe(true);
+    expect(game.calls().some((call) => call.id === 'voyante' && game.actorForCall(call) === 'Joueur 3')).toBe(true);
 
     game.calledIds.set(game.calls().map((call) => call.id));
     game.goToMorning();
     expect(game.aliveNames()).toContain('Joueur 3');
+  });
+
+  it('autorise Cupidon à se choisir comme l’un des amoureux', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const game = createGame(['cupidon', 'simple-villageois', 'loup-garou']);
+    game.nightNumber.set(1);
+    game.startNight();
+    game.openCall('cupidon');
+
+    expect(game.targetNames()).toContain('Joueur 1');
+    game.toggleTarget('Joueur 1');
+    game.toggleTarget('Joueur 2');
+    expect(game.canConfirmCall()).toBe(true);
+    game.confirmCall();
+    expect(game.lovers()).toEqual(['Joueur 1', 'Joueur 2']);
+  });
+
+  it('permet à la Sorcière de se choisir comme cible de son poison', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const game = createGame(['sorciere', 'loup-garou', 'simple-villageois']);
+    game.startNight();
+    game.openCall('sorciere');
+    game.enterWitchKillMode();
+
+    expect(game.targetNames()).toContain('Joueur 1');
+  });
+
+  it('fait grogner le Montreur d’Ours infecté chaque matin tant qu’il vit', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const game = createGame(['montreur-ours', 'loup-garou', 'simple-villageois', 'simple-villageois', 'simple-villageois']);
+    game.wolfAlignedNames.set(['Joueur 1']);
+    game.startNight();
+    game.calledIds.set(game.calls().map((call) => call.id));
+    expect(game.remainingCalls()).toEqual([]);
+    game.goToMorning();
+    expect(game.phase()).toBe('bear-neighbors');
+    game.toggleBearNeighbor('Joueur 2');
+    game.toggleBearNeighbor('Joueur 3');
+    game.confirmBearNeighbors();
+
+    expect(game.infoMessage()).toContain('infecté');
+  });
+
+  it('calcule le grognement avec les voisins indiqués par le MJ', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const game = createGame(['montreur-ours', 'simple-villageois', 'loup-garou', 'simple-villageois', 'simple-villageois']);
+    game.startNight();
+    game.calledIds.set(game.calls().map((call) => call.id));
+    game.goToMorning();
+    game.toggleBearNeighbor('Joueur 2');
+    game.toggleBearNeighbor('Joueur 3');
+    game.confirmBearNeighbors();
+
+    expect(game.infoMessage()).toContain('grogne');
+  });
+
+  it('ne consomme pas le premier vote de l’Ange quand le premier tour finit à égalité', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const game = createGame(['ange', 'loup-garou', 'loup-garou', 'simple-villageois']);
+    game.nightNumber.set(1);
+    game.goToVillageVote();
+    for (const target of game.aliveNames()) game.recordVillageVote(target);
+    game.finishVillageVote(); // départage demandé
+    for (const target of game.aliveNames()) game.recordVillageVote(target);
+    game.finishVillageVote();
+
+    expect(game.phase()).toBe('result');
+    expect(game.firstVillageVoteDone()).toBe(false);
+    expect(game.roleFor('Joueur 1').id).toBe('ange');
+    expect(game.resultMessage()).toContain('Première manche sans élimination');
   });
 });

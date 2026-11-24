@@ -4,7 +4,7 @@ import { Role } from '../../models /role.model';
 import { ROLES } from '../../data/roles';
 import { GameSession } from '../game-setup/game-session';
 
-type PlayPhase = 'sleep' | 'night' | 'morning' | 'captain' | 'vote' | 'captain-tiebreak' | 'captain-successor' | 'hunter-shot' | 'servante-choice' | 'result' | 'finished';
+type PlayPhase = 'sleep' | 'night' | 'bear-neighbors' | 'morning' | 'captain' | 'vote' | 'captain-tiebreak' | 'captain-successor' | 'hunter-shot' | 'servante-choice' | 'result' | 'finished';
 type NightAction = 'mentor' | 'cupidon' | 'seer' | 'wolves' | 'infect' | 'witch' | 'fox' | 'dog-wolf' | 'thief' | 'comedian' | 'judge' | 'recognize' | 'white-wolf' | 'grand-wolf' | 'sectarian';
 interface NightCall {
   id: string;
@@ -48,6 +48,9 @@ export class GamePlay {
   readonly lovers = signal<string[]>([]);
   readonly mentorByName = signal<Record<string, string>>({});
   readonly infectedNames = signal<string[]>([]);
+  /** Joueurs convertis dans le camp des loups sans perdre leur pouvoir nocturne. */
+  readonly wolfAlignedNames = signal<string[]>([]);
+  readonly infectedPowerRoles = signal<Record<string, Role>>({});
   readonly infectedDeathsTonight = signal<string[]>([]);
   readonly wolfVictims = signal<string[]>([]);
   readonly hunterUsed = signal<string[]>([]);
@@ -55,6 +58,8 @@ export class GamePlay {
   readonly witchPoisonUsed = signal(false);
   readonly foxPowerLost = signal(false);
   readonly foxFoundWolf = signal<boolean | null>(null);
+  readonly foxNeighborNames = signal<string[]>([]);
+  readonly bearNeighborNames = signal<string[]>([]);
   readonly secondVoteReady = signal<string[]>([]);
   readonly comedianRolesUsed = signal<string[]>([]);
   readonly comedianBorrowed = signal<Record<string, Role>>({});
@@ -73,6 +78,7 @@ export class GamePlay {
   readonly servanteFirstNightRole = signal<string | null>(null);
   readonly deathQueue = signal<string[]>([]);
   readonly deathQueueCause = signal<'night' | 'vote' | 'power'>('night');
+  readonly hunterEligibleDeaths = signal<string[]>([]);
   readonly nightVictim = signal<string | null>(null);
   readonly savedVictim = signal(false);
   readonly poisonedPlayer = signal<string | null>(null);
@@ -106,11 +112,12 @@ export class GamePlay {
     ?? SIMPLE_VILLAGER;
   readonly calls = computed<NightCall[]>(() => {
     const players = this.assignments();
-    const actor = (id: string) => players.find((player) => this.roleFor(player.name).id === id && this.aliveNames().includes(player.name) && !this.infectedDeathsTonight().includes(player.name));
+    const powerRoleFor = (name: string) => this.infectedPowerRoles()[name] ?? this.roleFor(name);
+    const actor = (id: string) => players.find((player) => powerRoleFor(player.name).id === id && this.aliveNames().includes(player.name) && !this.infectedDeathsTonight().includes(player.name));
     const calls: NightCall[] = [];
     const add = (id: string, action: NightAction, prompt: string, targets = 0, firstNightOnly = false) => {
       const player = actor(id);
-      if (player) calls.push({ id, label: this.roleFor(player.name).name, role: this.roleFor(player.name), prompt, targets, action, ...(firstNightOnly ? { firstNightOnly: true } : {}) });
+      if (player) calls.push({ id, label: powerRoleFor(player.name).name, role: powerRoleFor(player.name), prompt, targets, action, ...(firstNightOnly ? { firstNightOnly: true } : {}) });
     };
     const resetRole = this.servanteFirstNightRole();
     if (this.nightNumber() === 1 || resetRole === 'voleur') add('voleur', 'thief', 'Le Voleur regarde les cartes de réserve et choisit son nouveau personnage.', 0, true);
@@ -134,7 +141,7 @@ export class GamePlay {
     }
     add('voyante', 'seer', 'Demande à la Voyante de désigner un joueur dont elle veut connaître le rôle.', 1);
     if (!this.foxPowerLost()) add('renard', 'fox', 'Le Renard peut désigner le joueur central d’un groupe de trois joueurs voisins. Les joueurs éliminés ne sont pas comptés.', 1);
-    const wolves = players.find((player) => this.aliveNames().includes(player.name) && !this.infectedDeathsTonight().includes(player.name) && (this.roleFor(player.name).team === 'loup' || this.roleFor(player.name).id === 'loup-garou-blanc'))?.role;
+    const wolves = players.find((player) => this.aliveNames().includes(player.name) && !this.infectedDeathsTonight().includes(player.name) && this.isWolfAligned(player.name))?.role;
     if (wolves) {
       const littleGirlAlive = players.some((player) => this.aliveNames().includes(player.name) && this.roleFor(player.name).id === 'petite-fille');
       const prompt = littleGirlAlive
@@ -142,8 +149,8 @@ export class GamePlay {
         : 'Réveille les loups. Ils choisissent ensemble un joueur à éliminer.';
       calls.push({ id: 'loups', label: 'Les Loups', role: wolves, prompt, targets: 1, action: 'wolves' });
     }
-    if (this.nightNumber() % 2 === 0) add('loup-garou-blanc', 'white-wolf', 'Le Loup-Garou Blanc peut éliminer un autre loup cette nuit.', 1);
-    if (actor('grand-mechant-loup') && players.filter((player) => this.aliveNames().includes(player.name) && this.roleFor(player.name).team === 'loup').length > 1) {
+    if (this.nightNumber() % 2 === 0) add('loup-garou-blanc', 'white-wolf', 'Le Loup-Garou Blanc peut éliminer le joueur vivant de son choix cette nuit.', 1);
+    if (actor('grand-mechant-loup') && players.filter((player) => this.aliveNames().includes(player.name) && this.isWolfAligned(player.name)).length > 1) {
       add('grand-mechant-loup', 'grand-wolf', 'Tant qu’aucun autre loup n’est mort, le Grand Méchant Loup peut choisir une victime supplémentaire.', 1);
     }
     if (this.nightVictim() && !this.savedVictim() && !this.infectionUsed() && !this.victimInfected()) add('infect-pere-des-loups', 'infect', 'Le Père des Loups peut infecter la victime des loups au lieu de la laisser mourir.');
@@ -151,17 +158,32 @@ export class GamePlay {
     return calls;
   });
   readonly otherRoles = computed(() => this.assignments()
-    .filter(({ name }) => !this.calls().some((call) => call.id === this.roleFor(name).id || (call.id === 'loups' && this.roleFor(name).team === 'loup')))
+    .filter(({ name }) => !this.calls().some((call) => call.id === (this.infectedPowerRoles()[name]?.id ?? this.roleFor(name).id) || (call.id === 'loups' && this.isWolfAligned(name))))
     .map(({ name }) => ({ name, role: this.roleFor(name) })));
   readonly currentCall = computed(() => this.calls().find((call) => call.id === this.activeCallId()) ?? null);
-  readonly foxGroupNames = computed(() => this.foxGroupForCenter(this.selectedTargets()[0] ?? null));
+  readonly bearName = computed(() => this.assignments().find((player) => this.aliveNames().includes(player.name)
+    && (this.roleFor(player.name).id === 'montreur-ours' || this.infectedPowerRoles()[player.name]?.id === 'montreur-ours'))?.name ?? null);
+  readonly bearNeighborCandidates = computed(() => this.aliveNames().filter((name) => name !== this.bearName()));
+  readonly canConfirmBearNeighbors = computed(() => this.bearNeighborCandidates().length === 1
+    ? this.bearNeighborNames().length === 1
+    : this.bearNeighborNames().length === 2);
+  readonly foxNeighborCandidates = computed(() => this.aliveNames().filter((name) => name !== this.selectedTargets()[0]
+    && !this.infectedDeathsTonight().includes(name)));
+  readonly foxGroupNames = computed(() => {
+    const center = this.selectedTargets()[0];
+    const neighbors = this.foxNeighborNames();
+    const eligible = this.aliveNames().filter((name) => !this.infectedDeathsTonight().includes(name));
+    return center && eligible.includes(center) && neighbors.length === 2 && new Set([center, ...neighbors]).size === 3
+      && neighbors.every((name) => eligible.includes(name))
+      ? [neighbors[0], center, neighbors[1]]
+      : [];
+  });
   readonly targetNames = computed(() => {
     const call = this.currentCall();
     const actorName = call && call.id !== 'loups' ? this.actorForCall(call) : null;
     return this.aliveNames().filter((name) => !this.infectedDeathsTonight().includes(name)).filter((name) => {
-      if (name === actorName && call?.action !== 'fox') return false;
-      if (call?.action === 'wolves') return this.roleFor(name).team !== 'loup' && this.roleFor(name).id !== 'loup-garou-blanc';
-      if (call?.action === 'white-wolf') return this.roleFor(name).team === 'loup';
+      if (name === actorName && call?.action !== 'fox' && call?.action !== 'cupidon' && !(call?.action === 'witch' && this.witchKillMode())) return false;
+      if (call?.action === 'wolves') return !this.isWolfAligned(name);
       return true;
     });
   });
@@ -213,6 +235,7 @@ export class GamePlay {
     this.revealedPlayerRole.set(null);
     this.roleHasBeenRevealed.set(false);
     this.witchKillMode.set(false);
+    this.foxNeighborNames.set([]);
     this.reserveSelection.set(null);
     this.dogWolfChoice.set(null);
   }
@@ -229,8 +252,13 @@ export class GamePlay {
     const max = this.validTargetCount();
     const selected = this.selectedTargets();
     if (this.currentCall()?.action === 'fox' && this.foxFoundWolf() !== null) return;
-    if (selected.includes(name)) this.selectedTargets.set(selected.filter((item) => item !== name));
-    else if (max > 0 && selected.length < max) this.selectedTargets.set([...selected, name]);
+    if (selected.includes(name)) {
+      this.selectedTargets.set(selected.filter((item) => item !== name));
+      if (this.currentCall()?.action === 'fox') this.foxNeighborNames.set([]);
+    } else if (max > 0 && selected.length < max) {
+      this.selectedTargets.set([...selected, name]);
+      if (this.currentCall()?.action === 'fox') this.foxNeighborNames.set([]);
+    }
     else if (this.currentCall()?.id === 'sorciere') this.poisonedPlayer.set(name);
   }
 
@@ -295,6 +323,7 @@ export class GamePlay {
     this.calledIds.set([...this.calledIds(), call.id]);
     this.activeCallId.set(null);
     this.selectedTargets.set([]);
+    this.foxNeighborNames.set([]);
     this.revealedPlayerRole.set(null);
     this.roleHasBeenRevealed.set(false);
   }
@@ -323,31 +352,40 @@ export class GamePlay {
     this.calledIds.set([...this.calledIds(), call.id]);
     this.activeCallId.set(null);
     this.selectedTargets.set([]);
+    this.foxNeighborNames.set([]);
     this.foxFoundWolf.set(null);
   }
 
-  private foxGroupForCenter(centerName: string | null): string[] {
-    if (!centerName || !this.aliveNames().includes(centerName) || this.infectedDeathsTonight().includes(centerName)) return [];
-    const ordered = [...this.assignments()].sort((a, b) => a.cardIndex - b.cardIndex);
-    const centerIndex = ordered.findIndex((player) => player.name === centerName);
-    if (centerIndex < 0) return [];
-    const living = this.aliveNames().filter((name) => !this.infectedDeathsTonight().includes(name));
-    if (living.length < 3) return [];
-    const neighbor = (direction: -1 | 1): string | undefined => {
-      for (let step = 1; step < ordered.length; step += 1) {
-        const candidate = ordered[(centerIndex + direction * step + ordered.length * 2) % ordered.length];
-        if (living.includes(candidate.name) && candidate.name !== centerName) return candidate.name;
-      }
-      return undefined;
-    };
-    const left = neighbor(-1);
-    const right = neighbor(1);
-    return left && right && left !== right ? [left, centerName, right] : [];
+  toggleFoxNeighbor(name: string): void {
+    const center = this.selectedTargets()[0];
+    if (!center || name === center || !this.aliveNames().includes(name) || this.infectedDeathsTonight().includes(name)) return;
+    const selected = this.foxNeighborNames();
+    if (selected.includes(name)) this.foxNeighborNames.set(selected.filter((neighbor) => neighbor !== name));
+    else if (selected.length < 2) this.foxNeighborNames.set([...selected, name]);
+  }
+
+  toggleBearNeighbor(name: string): void {
+    const bear = this.assignments().find((player) => this.aliveNames().includes(player.name)
+      && (this.roleFor(player.name).id === 'montreur-ours' || this.infectedPowerRoles()[player.name]?.id === 'montreur-ours'))?.name;
+    if (!bear || name === bear || !this.aliveNames().includes(name)) return;
+    const selected = this.bearNeighborNames();
+    if (selected.includes(name)) this.bearNeighborNames.set(selected.filter((neighbor) => neighbor !== name));
+    else if (selected.length < 2) this.bearNeighborNames.set([...selected, name]);
+  }
+
+  confirmBearNeighbors(): void {
+    if (!this.canConfirmBearNeighbors()) return;
+    this.infoMessage.set(this.bearAnnouncement());
+    this.phase.set('morning');
   }
 
   private isWolfForFox(name: string): boolean {
+    return this.isWolfAligned(name);
+  }
+
+  private isWolfAligned(name: string): boolean {
     const role = this.roleFor(name);
-    return role.team === 'loup' || role.id === 'loup-garou-blanc';
+    return this.wolfAlignedNames().includes(name) || role.team === 'loup' || role.id === 'loup-garou-blanc';
   }
 
   markVictimSaved(): void {
@@ -373,30 +411,39 @@ export class GamePlay {
   goToMorning(): void {
     if (this.remainingCalls().length) return;
     if (this.victimInfected() && !this.savedVictim() && this.nightVictim()) {
-      this.roleOverrides.update((overrides) => ({ ...overrides, [this.nightVictim()!]: BASIC_WOLF }));
+      const victim = this.nightVictim()!;
+      this.infectedPowerRoles.update((roles) => ({ ...roles, [victim]: this.roleFor(victim) }));
+      this.roleOverrides.update((overrides) => ({ ...overrides, [victim]: BASIC_WOLF }));
+      this.wolfAlignedNames.update((names) => [...new Set([...names, victim])]);
     }
     this.resolveDeaths(this.dayDeaths(), 'night', 'morning');
   }
 
   private bearAnnouncement(): string {
-    const ordered = [...this.assignments()].sort((a, b) => a.cardIndex - b.cardIndex);
-    const bear = ordered.find((player) => this.aliveNames().includes(player.name) && this.roleFor(player.name).id === 'montreur-ours');
+    const bear = this.assignments().find((player) => player.name === this.bearName());
     if (!bear) return this.infoMessage();
-    const index = ordered.findIndex((player) => player.name === bear.name);
-    const neighbors = [-1, 1].map((direction) => {
-      for (let step = 1; step < ordered.length; step++) {
-        const candidate = ordered[(index + direction * step + ordered.length * 2) % ordered.length];
-        if (this.aliveNames().includes(candidate.name)) return candidate;
-      }
-      return undefined;
-    });
-    return neighbors.some((player) => player && this.roleFor(player.name).team === 'loup')
+    if (this.isWolfAligned(bear.name)) return 'Le Montreur d’Ours grogne : infecté, il sent les Loups-Garous autour de lui.';
+    return this.bearNeighborNames().some((name) => this.isWolfAligned(name))
       ? 'Le Montreur d’Ours grogne : au moins un de ses voisins vivants est un loup.'
       : 'Le Montreur d’Ours ne grogne pas.';
   }
 
+  private beginBearNeighborSelection(): boolean {
+    if (!this.bearName()) return false;
+    this.bearNeighborNames.set([]);
+    this.phase.set('bear-neighbors');
+    return true;
+  }
+
   private resolveDeaths(names: string[], cause: 'night' | 'vote' | 'power', destination: 'morning' | 'result'): void {
     this.deathQueueCause.set(cause);
+    const hunterDeaths = cause === 'vote'
+      ? [...names]
+      : cause === 'night'
+        ? names.filter((name) => this.wolfVictims().includes(name) || (name === this.nightVictim() && !this.victimInfected() && !this.savedVictim()))
+        : [];
+    if (hunterDeaths.length && this.lovers().some((name) => hunterDeaths.includes(name))) hunterDeaths.push(...this.lovers());
+    this.hunterEligibleDeaths.set([...new Set([...this.hunterEligibleDeaths(), ...hunterDeaths])]);
     this.deathQueue.set([...new Set([...this.deathQueue(), ...names])].filter((name) => this.aliveNames().includes(name)));
     this.processDeathQueue(destination);
   }
@@ -404,8 +451,10 @@ export class GamePlay {
   private processDeathQueue(destination: 'morning' | 'result'): void {
     if (this.nightNumber() === 1) {
       this.deathQueue.set([]);
+      this.hunterEligibleDeaths.set([]);
       this.eliminatedPlayerName.set(null);
       if (destination === 'morning') {
+        if (this.beginBearNeighborSelection()) return;
         this.infoMessage.set(this.bearAnnouncement());
       } else {
         this.secondVoteInProgress.set(false);
@@ -439,7 +488,7 @@ export class GamePlay {
         const start = ordered.findIndex((player) => player.name === name);
         for (let step = 1; step < ordered.length; step++) {
           const next = ordered[(start + step) % ordered.length];
-          if (this.aliveNames().includes(next.name) && this.roleFor(next.name).team === 'loup') {
+          if (this.aliveNames().includes(next.name) && this.isWolfAligned(next.name)) {
             this.infectedNames.update((infected) => [...new Set([...infected, next.name])]);
             break;
           }
@@ -453,18 +502,21 @@ export class GamePlay {
         return;
       }
       if (this.captain() === name) this.captain.set(null);
-      if (this.roleFor(name).id === 'chasseur' && !this.hunterUsed().includes(name) && this.aliveNames().length) {
+      if (this.roleFor(name).id === 'chasseur' && this.hunterEligibleDeaths().includes(name) && !this.hunterUsed().includes(name) && this.aliveNames().length) {
         this.pendingHunter.set(name);
         this.phase.set('hunter-shot');
         return;
       }
-      if (this.deathQueueCause() === 'vote' && this.roleFor(name).id === 'ange' && !this.firstVillageVoteDone()) {
-        this.finishGame('L’Ange remporte la partie : il a été éliminé au premier vote du village.');
+      if (this.roleFor(name).id === 'ange' && !this.firstVillageVoteDone()) {
+        this.finishGame('L’Ange remporte la partie : il a été éliminé au premier tour avec des morts.');
         return;
       }
     }
     if (this.checkVictory()) return;
-    if (destination === 'morning') this.infoMessage.set(this.bearAnnouncement());
+    if (destination === 'morning') {
+      if (this.beginBearNeighborSelection()) return;
+      this.infoMessage.set(this.bearAnnouncement());
+    }
     if (destination === 'result' && !this.firstVillageVoteDone()) {
       this.firstVillageVoteDone.set(true);
       this.downgradeAngel();
@@ -475,10 +527,10 @@ export class GamePlay {
 
   shootWithHunter(target: string): void {
     const hunter = this.pendingHunter();
-    if (!hunter) return;
+    if (!hunter || !target || target === hunter || !this.aliveNames().includes(target)) return;
     this.hunterUsed.update((used) => [...used, hunter]);
     this.pendingHunter.set(null);
-    if (target && this.aliveNames().includes(target)) this.deathQueue.set([...this.deathQueue(), target]);
+    this.deathQueue.set([...this.deathQueue(), target]);
     this.processDeathQueue(this.deathQueueCause() === 'vote' ? 'result' : 'morning');
   }
 
@@ -552,7 +604,7 @@ export class GamePlay {
     }
     const livingLovers = this.lovers().filter((name) => alive.includes(name));
     if (alive.length === 2 && livingLovers.length === 2 && livingLovers.some((name) => this.roleFor(name).team === 'loup')) return this.finishGame('Les deux amoureux remportent la partie ensemble.');
-    const wolves = alive.filter((name) => this.roleFor(name).team === 'loup').length;
+    const wolves = alive.filter((name) => this.isWolfAligned(name)).length;
     const villagers = alive.length - wolves;
     if (!wolves) return this.finishGame('Le village a éliminé tous les loups-garous.');
     if (wolves >= villagers) return this.finishGame('Les loups-garous prennent le contrôle du village.');
@@ -698,11 +750,15 @@ export class GamePlay {
       this.villageVoteHistory.set([]);
       return;
     }
-    this.firstVillageVoteDone.set(true);
+    if (this.nightNumber() > 1) {
+      this.firstVillageVoteDone.set(true);
+      this.downgradeAngel();
+    }
     this.secondVoteInProgress.set(false);
-    this.downgradeAngel();
     this.eliminatedPlayerName.set(null);
-    this.resultMessage.set('Le vote reste à égalité : personne n’est éliminé.');
+    this.resultMessage.set(this.nightNumber() === 1
+      ? 'Première manche sans élimination : personne ne meurt.'
+      : 'Le vote reste à égalité : personne n’est éliminé.');
     this.phase.set('result');
   }
 
@@ -760,7 +816,7 @@ export class GamePlay {
   }
 
   nameOf(role: Role): string {
-    return this.assignments().find((player) => this.roleFor(player.name).id === role.id)?.name ?? 'Joueur';
+    return this.assignments().find((player) => (this.infectedPowerRoles()[player.name] ?? this.roleFor(player.name)).id === role.id)?.name ?? 'Joueur';
   }
 
   actorForCall(call: NightCall): string {

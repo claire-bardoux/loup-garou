@@ -1,7 +1,7 @@
 <div class="play-screen">
   <header class="play-header">
     <a routerLink="/role-summary" class="back-button" aria-label="Retour au résumé">←</a>
-    <h1>{{ phase() === 'sleep' ? '' : phase() === 'night' ? 'Nuit n°' + nightNumber() : phase() === 'morning' ? 'Jour n°' + nightNumber() : phase() === 'captain' ? 'Élection du capitaine' : phase() === 'vote' ? 'Vote du village' : phase() === 'captain-tiebreak' ? 'Égalité' : phase() === 'captain-successor' ? 'Succession' : phase() === 'hunter-shot' ? 'Dernière balle du Chasseur' : phase() === 'servante-choice' ? 'Choix de la Servante' : phase() === 'finished' ? 'Fin de la partie' : 'Résultat du vote' }}</h1>
+    <h1>{{ phase() === 'sleep' ? '' : phase() === 'night' ? 'Nuit n°' + nightNumber() : phase() === 'bear-neighbors' ? 'Voisins du Montreur d’Ours' : phase() === 'morning' ? 'Jour n°' + nightNumber() : phase() === 'captain' ? 'Élection du capitaine' : phase() === 'vote' ? 'Vote du village' : phase() === 'captain-tiebreak' ? 'Égalité' : phase() === 'captain-successor' ? 'Succession' : phase() === 'hunter-shot' ? 'Dernière balle du Chasseur' : phase() === 'servante-choice' ? 'Choix de la Servante' : phase() === 'finished' ? 'Fin de la partie' : 'Résultat du vote' }}</h1>
     <button type="button" class="roster-button" (click)="openRoleRoster()" aria-label="Voir tous les rôles">Rôles</button>
     <a routerLink="/role-library" class="library-button" aria-label="Ouvrir la bibliothèque des rôles">▤</a>
   </header>
@@ -100,6 +100,22 @@
     </footer>
   }
 
+  @if (phase() === 'bear-neighbors') {
+    <main class="vote-content">
+      <h2>{{ bearName() }} est le Montreur d’Ours</h2>
+      <p>Maître du Jeu : indique le ou les voisins immédiats encore en jeu, selon la place réelle des joueurs.</p>
+      <p class="ballot-progress">Voisins indiqués : {{ bearNeighborNames().length }} / 2</p>
+      <div class="player-list">
+        @for (name of bearNeighborCandidates(); track name) {
+          <button type="button" [class.selected]="bearNeighborNames().includes(name)" (click)="toggleBearNeighbor(name)">{{ name }}</button>
+        }
+      </div>
+    </main>
+    <footer class="play-footer">
+      <button type="button" class="primary-button" [disabled]="!canConfirmBearNeighbors()" (click)="confirmBearNeighbors()">Confirmer les voisins <span aria-hidden="true">→</span></button>
+    </footer>
+  }
+
   @if (phase() === 'captain') {
     <main class="vote-content">
       <p>Le capitaine est une charge, pas une carte Personnage. Le village élit un joueur à la majorité relative. Chaque joueur vote une fois.</p>
@@ -160,11 +176,10 @@
   @if (phase() === 'hunter-shot') {
     <main class="vote-content">
       <h2>{{ pendingHunter() }} était le Chasseur</h2>
-      <p>Il peut choisir un joueur vivant à éliminer avec sa dernière balle, quelle que soit la cause de sa mort.</p>
+      <p>Tué par les Loups-Garous ou éliminé par le village, il peut choisir un joueur vivant à éliminer avec sa dernière balle.</p>
       <div class="player-list">
         @for (name of aliveNames(); track name) { <button type="button" (click)="shootWithHunter(name)">{{ name }}</button> }
       </div>
-      <button type="button" class="secondary-button" (click)="shootWithHunter('')">Ne pas tirer</button>
     </main>
   }
 
@@ -253,13 +268,22 @@
           </div>
           <button type="button" class="primary-button" [disabled]="!canConfirmCall()" (click)="confirmCall()">{{ call.action === 'thief' ? 'Choisir ce rôle' : 'Emprunter ce pouvoir' }}</button>
         } @else if (call.action === 'fox') {
-          <p>Choisis le joueur central. Le groupe examiné sera : {{ foxGroupNames().length ? foxGroupNames().join(', ') : 'indisponible' }}.</p>
+          <p>Maître du Jeu : choisis le joueur central puis indique ses deux voisins immédiats selon la place réelle des joueurs.</p>
+          <p>Groupe examiné : {{ foxGroupNames().length ? foxGroupNames().join(', ') : 'indique le joueur central et ses deux voisins' }}.</p>
           <p class="target-hint">{{ selectedTargets().length }} / {{ call.targets }} joueur(s) choisi(s)</p>
           <div class="target-list">
             @for (name of targetNames(); track name) {
               <button type="button" [class.selected]="selectedTargets().includes(name)" [disabled]="foxFoundWolf() !== null" (click)="toggleTarget(name)">{{ name }}</button>
             }
           </div>
+          @if (selectedTargets().length) {
+            <p class="target-hint">Voisins choisis : {{ foxNeighborNames().length }} / 2</p>
+            <div class="target-list">
+              @for (name of foxNeighborCandidates(); track name) {
+                <button type="button" [class.selected]="foxNeighborNames().includes(name)" [disabled]="foxFoundWolf() !== null" (click)="toggleFoxNeighbor(name)">{{ name }}</button>
+              }
+            </div>
+          }
           @if (foxFoundWolf() === null) {
             <button type="button" class="primary-button" [disabled]="!canConfirmCall()" (click)="revealFoxResult()">Révéler le résultat</button>
           } @else {
