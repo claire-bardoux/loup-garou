@@ -256,9 +256,9 @@ describe('GamePlay', () => {
   });
 
   it.each([
-    ['Joueur 2', 'Joueur 4', 'Joueur 5', 'garde son pouvoir'],
-    ['Joueur 4', 'Joueur 5', 'Joueur 6', 'perd son pouvoir'],
-  ])('révèle avec un bouton si le Renard %s, %s, %s', async (first, second, third, expectedResult) => {
+    ['Joueur 2', 'pourra réutiliser son pouvoir'],
+    ['Joueur 8', 'perd son pouvoir'],
+  ])('révèle le résultat du groupe central %s et le Renard %s', async (center, expectedResult) => {
     await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
     const session = TestBed.inject(GameSession);
     const roles = ['renard', 'loup-garou', 'loup-garou', ...Array(6).fill('simple-villageois')]
@@ -270,9 +270,7 @@ describe('GamePlay', () => {
     const game = fixture.componentInstance;
     game.startNight();
     game.openCall('renard');
-    game.toggleTarget(first);
-    game.toggleTarget(second);
-    game.toggleTarget(third);
+    game.toggleTarget(center);
     fixture.detectChanges();
 
     const revealButton = [...fixture.nativeElement.querySelectorAll('button')]
@@ -292,6 +290,52 @@ describe('GamePlay', () => {
     nextRoleButton!.click();
     expect(game.calledIds()).toContain('renard');
     expect(game.foxPowerLost()).toBe(expectedResult === 'perd son pouvoir');
+    expect(game.roleFor('Joueur 1').id).toBe('renard');
+  });
+
+  it('analyse le groupe de voisins vivants et reconnaît le Loup-Garou Blanc', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const game = createGame(['renard', 'simple-villageois', 'simple-villageois', 'loup-garou-blanc', 'simple-villageois', 'simple-villageois']);
+    game.aliveNames.set(game.aliveNames().filter((name) => name !== 'Joueur 3'));
+    game.startNight();
+    game.openCall('renard');
+    game.toggleTarget('Joueur 2');
+
+    expect(game.foxGroupNames()).toEqual(['Joueur 1', 'Joueur 2', 'Joueur 4']);
+    game.revealFoxResult();
+    expect(game.foxFoundWolf()).toBe(true);
+  });
+
+  it('détecte un joueur devenu loup par changement de camp', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const game = createGame(['renard', 'simple-villageois', 'simple-villageois', 'simple-villageois', 'simple-villageois']);
+    game.roleOverrides.set({ 'Joueur 3': ROLES.find((role) => role.id === 'loup-garou')! });
+    game.startNight();
+    game.openCall('renard');
+    game.toggleTarget('Joueur 2');
+    game.revealFoxResult();
+
+    expect(game.foxGroupNames()).toEqual(['Joueur 1', 'Joueur 2', 'Joueur 3']);
+    expect(game.foxFoundWolf()).toBe(true);
+  });
+
+  it('appelle le Renard avant les Loups et le laisse passer une nuit sans perdre son pouvoir', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const game = createGame(['renard', 'loup-garou', 'simple-villageois', 'simple-villageois']);
+    game.startNight();
+
+    const calls = game.calls().map((call) => call.id);
+    expect(calls.indexOf('renard')).toBeLessThan(calls.indexOf('loups'));
+
+    game.openCall('renard');
+    game.skipFox();
+    expect(game.calledIds()).toContain('renard');
+    expect(game.foxPowerLost()).toBe(false);
+    expect(game.roleFor('Joueur 1').id).toBe('renard');
+
+    game.beginNextNight();
+    game.startNight();
+    expect(game.calls().some((call) => call.id === 'renard')).toBe(true);
   });
 
   it('appelle l’Infect Père avant la Sorcière et permet de soigner la victime infectée', async () => {

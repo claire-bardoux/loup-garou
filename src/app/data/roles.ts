@@ -763,7 +763,7 @@ export const ROLES: Role[] = [
 
       'Le Renard fait partie du village.',
 
-      'Son flair lui permet de détecter la présence éventuelle d’un loup parmi trois joueurs.'
+      'Il peut désigner le joueur central d’un groupe de trois voisins vivants pour détecter la présence d’un Loup-Garou.'
 
     ],
 
@@ -771,9 +771,13 @@ export const ROLES: Role[] = [
 
       'Le Renard appartient au camp du village.',
 
-      'Il peut désigner trois joueurs et demander au MJ si au moins un loup se trouve parmi eux.',
+      'Il peut choisir le joueur central d’un groupe de trois joueurs voisins ; les joueurs éliminés ne sont pas comptés.',
 
-      'Si aucun loup n’est présent, il perd son pouvoir.',
+      'Le MJ lui indique si le groupe contient au moins un Loup-Garou.',
+
+      'Si aucun Loup-Garou n’est présent, il perd son pouvoir et sait que les trois joueurs sont innocents.',
+
+      'Il peut choisir de ne pas utiliser son pouvoir une nuit donnée.',
 
       'Il gagne si tous les loups sont éliminés.'
 
@@ -781,13 +785,13 @@ export const ROLES: Role[] = [
 
     howToPlay: [
 
-      'Lors de la première nuit, le Renard désigne trois joueurs.',
+      'Le MJ appelle le Renard chaque nuit ; il n’est pas obligé d’utiliser son pouvoir.',
 
-      'Le MJ lui indique si au moins un loup est présent parmi ces joueurs.',
+      'S’il l’utilise, il désigne le joueur central d’un groupe de trois voisins vivants. Les joueurs éliminés ne comptent pas.',
 
-      'S’il détecte un loup, il peut réutiliser son pouvoir la nuit suivante.',
+      'Si au moins un Loup-Garou est dans le groupe, il pourra réutiliser son pouvoir une nuit suivante.',
 
-      'Sinon, il devient un simple villageois.'
+      'Sinon, il perd son pouvoir et le groupe est innocent selon cette information.'
 
     ],
 

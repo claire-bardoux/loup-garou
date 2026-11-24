@@ -253,6 +253,7 @@
           </div>
           <button type="button" class="primary-button" [disabled]="!canConfirmCall()" (click)="confirmCall()">{{ call.action === 'thief' ? 'Choisir ce rôle' : 'Emprunter ce pouvoir' }}</button>
         } @else if (call.action === 'fox') {
+          <p>Choisis le joueur central. Le groupe examiné sera : {{ foxGroupNames().length ? foxGroupNames().join(', ') : 'indisponible' }}.</p>
           <p class="target-hint">{{ selectedTargets().length }} / {{ call.targets }} joueur(s) choisi(s)</p>
           <div class="target-list">
             @for (name of targetNames(); track name) {
@@ -265,6 +266,7 @@
             <p class="fox-result" role="status" aria-live="polite">{{ nightActionMessage() }}</p>
             <button type="button" class="primary-button" (click)="confirmCall()">Passer au rôle suivant</button>
           }
+          @if (foxFoundWolf() === null) { <button type="button" class="secondary-button" (click)="skipFox()">Ne pas utiliser le pouvoir ce soir</button> }
         } @else if (call.action === 'witch') {
           <p class="victim-call">La victime des loups est {{ nightVictim() ?? 'inconnue' }}{{ victimInfected() ? ' et a été infectée.' : '.' }}</p>
           <div class="witch-actions">

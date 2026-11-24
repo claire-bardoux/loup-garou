@@ -129,10 +129,11 @@ export class GamePlay {
     if (borrowed && comedian && this.calledIds().includes('comedien') && !this.calledIds().includes('comedien-pouvoir')) {
       const action = this.borrowedAction(borrowed.id);
       if (action && (!(action === 'witch' || action === 'infect') || this.nightVictim())) {
-        calls.push({ id: 'comedien-pouvoir', label: `Comédien · ${borrowed.name}`, role: borrowed, prompt: `Le Comédien utilise maintenant le pouvoir de ${borrowed.name}.`, targets: action === 'seer' || action === 'fox' || action === 'white-wolf' || action === 'grand-wolf' ? (action === 'fox' ? 3 : 1) : 0, action });
+        calls.push({ id: 'comedien-pouvoir', label: `Comédien · ${borrowed.name}`, role: borrowed, prompt: `Le Comédien utilise maintenant le pouvoir de ${borrowed.name}.`, targets: action === 'seer' || action === 'fox' || action === 'white-wolf' || action === 'grand-wolf' ? 1 : 0, action });
       }
     }
     add('voyante', 'seer', 'Demande à la Voyante de désigner un joueur dont elle veut connaître le rôle.', 1);
+    if (!this.foxPowerLost()) add('renard', 'fox', 'Le Renard peut désigner le joueur central d’un groupe de trois joueurs voisins. Les joueurs éliminés ne sont pas comptés.', 1);
     const wolves = players.find((player) => this.aliveNames().includes(player.name) && !this.infectedDeathsTonight().includes(player.name) && (this.roleFor(player.name).team === 'loup' || this.roleFor(player.name).id === 'loup-garou-blanc'))?.role;
     if (wolves) {
       const littleGirlAlive = players.some((player) => this.aliveNames().includes(player.name) && this.roleFor(player.name).id === 'petite-fille');
@@ -147,18 +148,18 @@ export class GamePlay {
     }
     if (this.nightVictim() && !this.savedVictim() && !this.infectionUsed() && !this.victimInfected()) add('infect-pere-des-loups', 'infect', 'Le Père des Loups peut infecter la victime des loups au lieu de la laisser mourir.');
     if (!this.witchHealUsed() || !this.witchPoisonUsed()) add('sorciere', 'witch', 'Présente à la Sorcière la victime des loups. Chaque potion ne peut être utilisée qu’une fois.');
-    if (!this.foxPowerLost()) add('renard', 'fox', 'Demande au Renard de désigner trois joueurs. Dis-lui si au moins un loup se trouve parmi eux.', 3);
     return calls;
   });
   readonly otherRoles = computed(() => this.assignments()
     .filter(({ name }) => !this.calls().some((call) => call.id === this.roleFor(name).id || (call.id === 'loups' && this.roleFor(name).team === 'loup')))
     .map(({ name }) => ({ name, role: this.roleFor(name) })));
   readonly currentCall = computed(() => this.calls().find((call) => call.id === this.activeCallId()) ?? null);
+  readonly foxGroupNames = computed(() => this.foxGroupForCenter(this.selectedTargets()[0] ?? null));
   readonly targetNames = computed(() => {
     const call = this.currentCall();
     const actorName = call && call.id !== 'loups' ? this.actorForCall(call) : null;
     return this.aliveNames().filter((name) => !this.infectedDeathsTonight().includes(name)).filter((name) => {
-      if (name === actorName) return false;
+      if (name === actorName && call?.action !== 'fox') return false;
       if (call?.action === 'wolves') return this.roleFor(name).team !== 'loup' && this.roleFor(name).id !== 'loup-garou-blanc';
       if (call?.action === 'white-wolf') return this.roleFor(name).team === 'loup';
       return true;
@@ -184,6 +185,7 @@ export class GamePlay {
   readonly canConfirmCall = computed(() => {
     const call = this.currentCall();
     if (!call) return false;
+    if (call.action === 'fox') return this.selectedTargets().length === 1 && this.foxGroupNames().length === 3;
     if (call.action === 'witch') return !this.witchKillMode() || this.selectedTargets().length === 1;
     if (call.action === 'thief' || call.action === 'comedian') return !!this.reserveSelection();
     if (call.action === 'dog-wolf') return !!this.dogWolfChoice();
@@ -288,7 +290,6 @@ export class GamePlay {
     }
     if (call.action === 'fox' && call.id === 'renard' && this.foxFoundWolf() === false) {
       this.foxPowerLost.set(true);
-      if (actorName) this.roleOverrides.update((overrides) => ({ ...overrides, [actorName]: SIMPLE_VILLAGER }));
     }
     if (call.firstNightOnly && this.servanteFirstNightRole() === call.id) this.servanteFirstNightRole.set(null);
     this.calledIds.set([...this.calledIds(), call.id]);
@@ -302,17 +303,51 @@ export class GamePlay {
     const call = this.currentCall();
     if (!call || call.action !== 'fox' || !this.canConfirmCall() || this.foxFoundWolf() !== null) return;
 
-    const wolfFound = this.assignments().some((player) => this.selectedTargets().includes(player.name) && this.roleFor(player.name).team === 'loup');
+    const group = this.foxGroupNames();
+    const wolfFound = group.some((name) => this.isWolfForFox(name));
     this.foxFoundWolf.set(wolfFound);
     if (call.id === 'renard') {
       this.nightActionMessage.set(wolfFound
-        ? 'Au moins un loup parmi ces joueurs : le Renard garde son pouvoir et pourra être appelé la prochaine nuit.'
-        : 'Aucun loup parmi ces joueurs : le Renard perd son pouvoir et devient Simple Villageois.');
+        ? 'Au moins un Loup-Garou parmi ces trois voisins : le Renard pourra réutiliser son pouvoir une nuit suivante.'
+        : 'Aucun Loup-Garou parmi ces trois voisins : le Renard perd son pouvoir et ces joueurs sont innocents selon cette information.');
     } else {
       this.nightActionMessage.set(wolfFound
-        ? 'Au moins un loup parmi ces joueurs : le Comédien réussit son pouvoir emprunté.'
-        : 'Aucun loup parmi ces joueurs : le pouvoir emprunté du Renard échoue.');
+        ? 'Au moins un Loup-Garou parmi ces trois voisins : le Comédien réussit son pouvoir emprunté.'
+        : 'Aucun Loup-Garou parmi ces trois voisins : le Comédien peut considérer ces joueurs innocents selon cette information.');
     }
+  }
+
+  skipFox(): void {
+    const call = this.currentCall();
+    if (!call || call.action !== 'fox') return;
+    this.calledIds.set([...this.calledIds(), call.id]);
+    this.activeCallId.set(null);
+    this.selectedTargets.set([]);
+    this.foxFoundWolf.set(null);
+  }
+
+  private foxGroupForCenter(centerName: string | null): string[] {
+    if (!centerName || !this.aliveNames().includes(centerName) || this.infectedDeathsTonight().includes(centerName)) return [];
+    const ordered = [...this.assignments()].sort((a, b) => a.cardIndex - b.cardIndex);
+    const centerIndex = ordered.findIndex((player) => player.name === centerName);
+    if (centerIndex < 0) return [];
+    const living = this.aliveNames().filter((name) => !this.infectedDeathsTonight().includes(name));
+    if (living.length < 3) return [];
+    const neighbor = (direction: -1 | 1): string | undefined => {
+      for (let step = 1; step < ordered.length; step += 1) {
+        const candidate = ordered[(centerIndex + direction * step + ordered.length * 2) % ordered.length];
+        if (living.includes(candidate.name) && candidate.name !== centerName) return candidate.name;
+      }
+      return undefined;
+    };
+    const left = neighbor(-1);
+    const right = neighbor(1);
+    return left && right && left !== right ? [left, centerName, right] : [];
+  }
+
+  private isWolfForFox(name: string): boolean {
+    const role = this.roleFor(name);
+    return role.team === 'loup' || role.id === 'loup-garou-blanc';
   }
 
   markVictimSaved(): void {
