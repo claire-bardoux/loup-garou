@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { Role, RoleTeam } from '../../models /role.model';
 import { GameSession, interleaveRolesByTeam } from '../game-setup/game-session';
@@ -16,6 +16,7 @@ interface TeamSection {
   styleUrl: './role-summary.css',
 })
 export class RoleSummary {
+  private readonly host = inject(ElementRef<HTMLElement>);
   private readonly router = inject(Router);
   private readonly session = inject(GameSession);
   readonly playerCount = this.session.playerCount;
@@ -60,6 +61,8 @@ export class RoleSummary {
   continue(): void {
     this.session.setDistributionOrder(interleaveRolesByTeam(this.session.roles()));
     this.distributionStarted.set(true);
+    const screen = this.host.nativeElement.querySelector('.summary-screen') as HTMLElement | null;
+    if (screen && typeof screen.scrollTo === 'function') screen.scrollTo({ top: 0 });
   }
 
   chooseCard(index: number): void {

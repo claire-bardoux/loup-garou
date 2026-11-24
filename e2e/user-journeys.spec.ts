@@ -49,6 +49,34 @@ test('configuration, résumé et distribution des rôles', async ({ page }) => {
   }
 });
 
+test('une composition manuelle de 16 joueurs affiche toutes les cartes après Suivant', async ({ page }) => {
+  await page.goto('/game-setup');
+  for (let player = 13; player < 16; player += 1) {
+    await page.getByRole('button', { name: 'Ajouter un joueur' }).click();
+  }
+  await page.getByRole('link', { name: 'Créer ma composition' }).click();
+
+  await page.getByRole('button', { name: 'Village', exact: true }).click();
+  for (let role = 0; role < 13; role += 1) {
+    await page.getByRole('button', { name: 'Ajouter un Simple Villageois' }).click();
+  }
+  await page.getByRole('button', { name: 'Loups', exact: true }).click();
+  for (let role = 0; role < 3; role += 1) {
+    await page.getByRole('button', { name: 'Ajouter un Loup-Garou' }).click();
+  }
+  await page.getByRole('button', { name: 'Valider la composition' }).click();
+
+  await expect(page).toHaveURL(/role-summary/);
+  await page.locator('.summary-screen').evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await page.getByRole('button', { name: 'Suivant' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Joueur n°1, choisis ta carte !' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Choisir une carte, numéro/ })).toHaveCount(16);
+  await expect(page.getByRole('button', { name: 'Choisir une carte, numéro 1', exact: true })).toBeInViewport();
+});
+
 test('la page reste dans la largeur sur mobile', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   for (const route of ['/', '/game-setup', '/role-library', '/game-play']) {
