@@ -38,6 +38,7 @@ export class GamePlay {
   readonly selectedTargets = signal<string[]>([]);
   readonly revealedPlayerRole = signal<{ name: string; role: Role } | null>(null);
   readonly roleHasBeenRevealed = signal(false);
+  readonly roleRosterOpen = signal(false);
   readonly reserveSelection = signal<string | null>(null);
   readonly dogWolfChoice = signal<'village' | 'loup' | null>(null);
   readonly calledIds = signal<string[]>([]);
@@ -169,6 +170,7 @@ export class GamePlay {
   });
   readonly remainingCalls = computed(() => this.calls().filter((call) => !this.calledIds().includes(call.id)));
   readonly dayDeaths = computed(() => {
+    if (this.nightNumber() === 1) return [];
     const victim = this.victimInfected() ? null : this.nightVictim();
     const deaths = [...this.wolfVictims(), ...this.infectedDeathsTonight(), victim, this.poisonedPlayer()].filter((name): name is string => !!name);
     return [...new Set(deaths.filter((name) => !(name === this.nightVictim() && this.savedVictim())))];
@@ -365,6 +367,18 @@ export class GamePlay {
   }
 
   private processDeathQueue(destination: 'morning' | 'result'): void {
+    if (this.nightNumber() === 1) {
+      this.deathQueue.set([]);
+      this.eliminatedPlayerName.set(null);
+      if (destination === 'morning') {
+        this.infoMessage.set(this.bearAnnouncement());
+      } else {
+        this.secondVoteInProgress.set(false);
+        this.resultMessage.set('Première manche sans élimination : personne ne meurt.');
+      }
+      this.phase.set(destination);
+      return;
+    }
     while (this.deathQueue().length) {
       const next = this.deathQueue()[0];
       const servant = this.assignments().find((player) => this.aliveNames().includes(player.name) && this.roleFor(player.name).id === 'servante-devouee');
@@ -632,7 +646,6 @@ export class GamePlay {
     const leaders = Object.keys(votes).filter((name) => votes[name] === highest);
     if (leaders.length === 1) {
       this.eliminatePlayer(leaders[0]);
-      this.firstVillageVoteDone.set(true);
       this.secondVoteInProgress.set(false);
       return;
     }
@@ -665,7 +678,7 @@ export class GamePlay {
   private eliminatePlayer(name: string): void {
     this.eliminatedPlayerName.set(name);
     this.resolveDeaths([name], 'vote', 'result');
-    this.firstVillageVoteDone.set(true);
+    if (this.nightNumber() > 1) this.firstVillageVoteDone.set(true);
   }
 
   chooseSuccessor(name: string): void {
@@ -718,5 +731,13 @@ export class GamePlay {
   actorForCall(call: NightCall): string {
     if (call.id === 'comedien-pouvoir') return this.assignments().find((player) => this.aliveNames().includes(player.name) && this.roleFor(player.name).id === 'comedien')?.name ?? 'Comédien';
     return this.nameOf(call.role);
+  }
+
+  openRoleRoster(): void {
+    this.roleRosterOpen.set(true);
+  }
+
+  closeRoleRoster(): void {
+    this.roleRosterOpen.set(false);
   }
 }

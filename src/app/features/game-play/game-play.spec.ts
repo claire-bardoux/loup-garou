@@ -15,7 +15,9 @@ describe('GamePlay', () => {
     }));
     session.setDraft(assignments.length, assignments.map(({ role }) => role), reserveRoleIds.map((id) => ROLES.find((role) => role.id === id)!));
     session.setPlayerAssignments(assignments);
-    return TestBed.createComponent(GamePlay).componentInstance;
+    const game = TestBed.createComponent(GamePlay).componentInstance;
+    game.nightNumber.set(2);
+    return game;
   }
 
   function voteFor(game: GamePlay, target: string): void {
@@ -56,6 +58,84 @@ describe('GamePlay', () => {
     expect(game.phase()).toBe('morning');
     expect(game.pendingServante()).toBeNull();
     expect(game.aliveNames()).not.toContain('Joueur 5');
+  });
+
+  it('empêche toute mort pendant la première nuit et le premier vote, puis reprend à la deuxième nuit', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const game = createGame(['loup-garou', 'loup-garou', 'sorciere', 'voyante', ...Array(5).fill('simple-villageois')]);
+    game.nightNumber.set(1);
+
+    game.startNight();
+    game.openCall('loups');
+    game.toggleTarget('Joueur 5');
+    game.confirmCall();
+    game.openCall('sorciere');
+    game.enterWitchKillMode();
+    game.toggleTarget('Joueur 6');
+    game.confirmCall();
+    game.calledIds.set(game.calls().map((call) => call.id));
+    game.goToMorning();
+
+    expect(game.dayDeaths()).toEqual([]);
+    expect(game.aliveNames()).toHaveLength(9);
+    voteFor(game, 'Joueur 7');
+    expect(game.aliveNames()).toHaveLength(9);
+    expect(game.phase()).toBe('result');
+    expect(game.resultMessage()).toContain('Première manche sans élimination');
+
+    game.beginNextNight();
+    expect(game.nightNumber()).toBe(2);
+    game.startNight();
+    game.openCall('loups');
+    game.toggleTarget('Joueur 5');
+    game.confirmCall();
+    game.calledIds.set(game.calls().map((call) => call.id));
+    game.goToMorning();
+    expect(game.aliveNames()).not.toContain('Joueur 5');
+  });
+
+  it('garde le pouvoir de l’Ange après le vote protégé et lui permet de gagner à la manche suivante', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const game = createGame(['ange', 'loup-garou', 'loup-garou', ...Array(5).fill('simple-villageois')]);
+    game.nightNumber.set(1);
+
+    voteFor(game, 'Joueur 1');
+
+    expect(game.aliveNames()).toContain('Joueur 1');
+    expect(game.roleFor('Joueur 1').id).toBe('ange');
+    expect(game.firstVillageVoteDone()).toBe(false);
+
+    game.beginNextNight();
+    voteFor(game, 'Joueur 1');
+
+    expect(game.phase()).toBe('finished');
+    expect(game.winnerMessage()).toContain('L’Ange remporte la partie');
+  });
+
+  it('permet au MJ d’ouvrir le récapitulatif des rôles pendant un appel nocturne', async () => {
+    await TestBed.configureTestingModule({ imports: [GamePlay], providers: [provideRouter([])] }).compileComponents();
+    const session = TestBed.inject(GameSession);
+    const roles = ['voyante', 'loup-garou', 'simple-villageois'].map((id) => ROLES.find((role) => role.id === id)!);
+    const assignments = roles.map((role, cardIndex) => ({ name: `Joueur ${cardIndex + 1}`, role, cardIndex }));
+    session.setDraft(assignments.length, roles);
+    session.setPlayerAssignments(assignments);
+    const fixture = TestBed.createComponent(GamePlay);
+    const game = fixture.componentInstance;
+    game.startNight();
+    game.openCall('voyante');
+    fixture.detectChanges();
+
+    const rosterButton = [...fixture.nativeElement.querySelectorAll('button')]
+      .find((button: HTMLButtonElement) => button.textContent?.trim() === 'Voir les rôles de la partie') as HTMLButtonElement | undefined;
+    expect(rosterButton).toBeDefined();
+    rosterButton!.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#role-roster-title')?.textContent).toContain('Rôles de la partie');
+    expect(fixture.nativeElement.textContent).toContain('Joueur 1');
+    expect(fixture.nativeElement.textContent).toContain('Voyante');
+    expect(fixture.nativeElement.textContent).toContain('Joueur 2');
+    expect(fixture.nativeElement.textContent).toContain('Loup-Garou');
   });
 
   it('permet à la Servante de refuser puis de choisir lors d’un vote ultérieur', async () => {

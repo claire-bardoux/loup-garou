@@ -2,6 +2,7 @@
   <header class="play-header">
     <a routerLink="/role-summary" class="back-button" aria-label="Retour au résumé">←</a>
     <h1>{{ phase() === 'sleep' ? '' : phase() === 'night' ? 'Nuit n°' + nightNumber() : phase() === 'morning' ? 'Jour n°' + nightNumber() : phase() === 'captain' ? 'Élection du capitaine' : phase() === 'vote' ? 'Vote du village' : phase() === 'captain-tiebreak' ? 'Égalité' : phase() === 'captain-successor' ? 'Succession' : phase() === 'hunter-shot' ? 'Dernière balle du Chasseur' : phase() === 'servante-choice' ? 'Choix de la Servante' : phase() === 'finished' ? 'Fin de la partie' : 'Résultat du vote' }}</h1>
+    <button type="button" class="roster-button" (click)="openRoleRoster()" aria-label="Voir tous les rôles">Rôles</button>
     <a routerLink="/role-library" class="library-button" aria-label="Ouvrir la bibliothèque des rôles">▤</a>
   </header>
 
@@ -212,6 +213,7 @@
     <div class="modal-backdrop">
       <section class="action-modal" role="dialog" aria-modal="true" [attr.aria-labelledby]="'call-title-' + call.id">
         <h2 [id]="'call-title-' + call.id">{{ call.label }}{{ call.id === 'loups' ? ' se réveille' : ' est appelé' }}</h2>
+        <button type="button" class="secondary-button" (click)="openRoleRoster()">Voir les rôles de la partie</button>
         <img [src]="call.role.image" [alt]="call.role.name" />
         @if (call.id !== 'loups') { <p class="actor-name">{{ actorForCall(call) }}</p> }
         <p>{{ call.prompt }}</p>
@@ -307,9 +309,30 @@
     <div class="private-role-backdrop">
       <section class="private-role-screen" role="dialog" aria-modal="true" [attr.aria-label]="revealed.name + ' est ' + revealed.role.name">
         <button type="button" class="hide-role-button" aria-label="Masquer le rôle et revenir au Maître du Jeu" (click)="revealedPlayerRole.set(null)">×</button>
+        <button type="button" class="secondary-button" (click)="openRoleRoster()">Voir tous les rôles (MJ)</button>
         <p>{{ revealed.name }} est</p>
         <img [src]="revealed.role.image" [alt]="revealed.role.name" />
         <h1>{{ revealed.role.name }}</h1>
+      </section>
+    </div>
+  }
+
+  @if (roleRosterOpen()) {
+    <div class="modal-backdrop role-roster-backdrop">
+      <section class="action-modal role-roster-modal" role="dialog" aria-modal="true" aria-labelledby="role-roster-title">
+        <h2 id="role-roster-title">Rôles de la partie</h2>
+        <p>Vue réservée au Maître du Jeu.</p>
+        <div class="role-roster-list">
+          @for (player of assignments(); track player.cardIndex) {
+            <article [class.eliminated]="!aliveNames().includes(player.name)">
+              <img [src]="roleFor(player.name).image" [alt]="roleFor(player.name).name" />
+              <span>{{ player.name }}</span>
+              <strong>{{ roleFor(player.name).name }}</strong>
+              <small>{{ aliveNames().includes(player.name) ? 'En vie' : 'Éliminé' }}</small>
+            </article>
+          }
+        </div>
+        <button type="button" class="primary-button" (click)="closeRoleRoster()">Fermer</button>
       </section>
     </div>
   }
